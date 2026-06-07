@@ -15,8 +15,24 @@
  * Needs network; BESTTIME_API_KEY (venues) and SOCRATA_APP_TOKEN (optional) in env.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+
+// Minimal .env.local loader — this standalone script doesn't get Next.js's
+// automatic env loading, and we don't want a dotenv dependency. Only sets keys
+// not already present in the environment (so inline `KEY=... npm run` wins).
+(function loadEnvLocal() {
+  const envPath = resolve(process.cwd(), ".env.local");
+  if (!existsSync(envPath)) return;
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
+    if (!m || m[1].startsWith("#")) continue;
+    const key = m[1];
+    const val = m[2].replace(/^["']|["']$/g, "");
+    if (process.env[key] === undefined && val !== "") process.env[key] = val;
+  }
+})();
+
 import { EVENTS } from "@/data/events";
 import { STATIONS } from "@/data/subway";
 import { VENUES } from "@/data/venues";
@@ -139,7 +155,7 @@ async function buildVenueHistorical(
   });
 
   for (const v of VENUES) {
-    const curve = await fetchVenueWeeklyCurve(v.name, addressFor(v));
+    const curve = await fetchVenueWeeklyCurve(v.name, v.address);
     if (!curve) {
       console.log(`[venue] ${v.id}: no BestTime data (skipped)`);
       continue;
@@ -158,13 +174,6 @@ async function buildVenueHistorical(
     historical[v.id] = byDow;
     console.log(`[venue] ${v.id}: ${Object.keys(byDow).length} dows`);
   }
-}
-
-function addressFor(v: { name: string }): string {
-  // Venues seed lacks an address column; BestTime needs one. Use a Midtown
-  // fallback so lookups resolve near MSG. Extend the venue seed with real
-  // addresses for better matches.
-  return `${v.name}, New York, NY`;
 }
 
 async function main() {
