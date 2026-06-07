@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { CrowdCell } from "@/types";
+import { buildContext, predictGrid } from "@/lib/crowd";
 
-// GET /api/crowd?eventId=&scoreDiff=&clockMinRemaining=&status= — heat-map grid.
-// Stub: returns an empty grid with the correct shape. The prediction pass fills
-// this from the score-aware GameState model blended with a historical baseline
-// and distance decay from MSG (see @/lib/predict).
-export function GET(req: NextRequest) {
+// GET /api/crowd?tNow=&tFuture=&gameId= — predictive heat-map grid around MSG.
+// Each cell intensity = predicted_crowd(current × temporal_drift, baseline).
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const eventId = searchParams.get("eventId") ?? "";
+  const ctx = await buildContext(searchParams);
+  const cells = predictGrid(ctx);
 
-  const cells: CrowdCell[] = [];
-
-  return NextResponse.json({ eventId, cells });
+  return NextResponse.json({
+    gameState: ctx.gameState,
+    tNow: new Date(ctx.tNowMs).toISOString(),
+    tFuture: new Date(ctx.tFutureMs).toISOString(),
+    cells,
+  });
 }
