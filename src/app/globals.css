@@ -660,6 +660,314 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
+/* ---------- live chat (right-side drawer) ---------- */
+.chatdrawer {
+  --chat-w: clamp(280px, 24vw, 360px);
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none; /* only the tab + panel are interactive */
+}
+
+/* edge tab handle — rides the left edge of the panel, so it slides in with the
+   drawer and becomes the close (›) affordance when open. */
+.chatdrawer-tab {
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  right: 0; /* screen's right edge when closed */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 9px;
+  border: 0.5px solid var(--glass-border);
+  border-right: none;
+  border-radius: 14px 0 0 14px;
+  /* neutral dark-glass base; an orange glow flashes on each new message */
+  background: rgba(12, 18, 32, 0.72);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  color: #fff;
+  cursor: pointer;
+  /* the tab is stable (never re-mounts), so this slide transition always runs */
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s;
+}
+/* when open, ride the panel's left edge (slides smoothly via the transition) */
+.chatdrawer.is-open .chatdrawer-tab {
+  transform: translateY(-50%) translateX(calc(-1 * var(--chat-w)));
+}
+.chatdrawer-tab:hover {
+  background: rgba(20, 28, 46, 0.85);
+}
+
+/* one-shot glow overlay — keyed on each new message so it re-mounts and
+   replays without touching the button (keeps the slide transition intact) */
+.chatdrawer-tab-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: tab-glow 1.3s ease-out forwards;
+}
+@keyframes tab-glow {
+  0% {
+    box-shadow: -3px 0 22px 2px rgba(244, 131, 38, 0.95),
+      0 0 14px rgba(244, 131, 38, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 131, 38, 0);
+  }
+}
+.chatdrawer-tab-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.chatdrawer-tab-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+}
+
+/* the sliding panel */
+.chatdrawer-panel {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: var(--chat-w);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  /* a touch more opaque than the bento glass so messages read cleanly */
+  background: rgba(10, 16, 30, 0.6);
+  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chatdrawer.is-open .chatdrawer-panel {
+  transform: translateX(0);
+}
+
+.chatdrawer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(16px, 1.5vw, 24px) clamp(16px, 1.4vw, 22px) 12px;
+}
+.chatdrawer-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.chatdrawer-livedot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  animation: livedot 1.8s ease-in-out infinite;
+}
+@keyframes livedot {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* scrolling message list */
+.chatdrawer-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 4px clamp(14px, 1.3vw, 20px) 10px;
+}
+.chatdrawer-empty {
+  margin: auto;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.chat-row {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 2px solid transparent;
+  animation: row-in 0.28s ease-out;
+}
+.chat-row.tone-good {
+  border-left-color: rgba(95, 240, 192, 0.6);
+}
+.chat-row.tone-bad {
+  border-left-color: rgba(255, 107, 107, 0.6);
+}
+.chat-row.is-you {
+  background: rgba(244, 131, 38, 0.16);
+  border-left-color: var(--knicks-orange);
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.chat-row-line {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #fff;
+}
+.chat-author {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-right: 6px;
+}
+.chat-row.is-you .chat-author {
+  color: #ffd9b3;
+}
+.chat-text {
+  color: #fff;
+}
+
+.chat-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+.chat-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.32);
+}
+.chat-reaction b {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+/* glass composer dock, pinned to the bottom of the drawer */
+.chatdrawer-dock {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px clamp(14px, 1.3vw, 20px) clamp(16px, 1.5vw, 22px);
+  border-top: 0.5px solid var(--glass-border);
+  background: rgba(8, 13, 26, 0.5);
+}
+
+.chat-emoji-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.chat-emoji {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 5px 0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.chat-emoji:hover:not(:disabled) {
+  transform: scale(1.18);
+  background: rgba(255, 255, 255, 0.18);
+}
+.chat-emoji:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.chat-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-quick-row .chip {
+  padding: 4px 11px;
+  font-size: 11.5px;
+}
+.chat-quick-row .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chat-quick-row .chip:disabled:hover {
+  color: var(--text-dim);
+}
+
+.chat-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 99px;
+  padding: 8px 14px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.chat-input::placeholder {
+  color: var(--text-faint);
+}
+.chat-input:focus {
+  border-color: rgba(244, 131, 38, 0.7);
+}
+.chat-count {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.chat-send {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: none;
+  background: var(--knicks-orange);
+  color: #11244a;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: opacity 0.12s, transform 0.12s;
+}
+.chat-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.chat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 1000px) {
   body {
@@ -676,6 +984,10 @@ input[type="range"]::-moz-range-thumb {
   }
   .map-wrap {
     min-height: 60vh;
+  }
+  /* Drawer stays available on mobile — collapsed by default, slides over. */
+  .chatdrawer {
+    --chat-w: min(86vw, 360px);
   }
 }
 

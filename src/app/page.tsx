@@ -8,6 +8,7 @@ import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel, { type FriendsPrefs } from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
+import LiveChat from "@/components/LiveChat";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
 const DEFAULT_FILTERS: CrowdFilters = {
@@ -93,6 +94,8 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <LiveChat feed={feed} />
     </main>
   );
 }
