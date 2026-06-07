@@ -8,6 +8,7 @@ import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
+import GameScrubber from "@/components/GameScrubber";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
 // MapLibre needs the browser; load the custom map view client-side only.
@@ -62,21 +63,24 @@ export default function Home() {
       </div>
 
       <div className="map-wrap">
-        <MapView
-          eventKey={feed.idx}
-          impact={feed.current.impact}
-          tone={feed.current.tone}
-          text={feed.current.text}
-          tag={feed.current.tag}
-        />
-        <div className="map-legend">
-          <span className="legend-title">Crowd</span>
-          <div className="legend-bar" />
-          <div className="legend-scale">
-            <span>Quiet</span>
-            <span>Packed</span>
+        <div className="map-stage">
+          <MapView
+            eventKey={feed.idx}
+            impact={feed.current.impact}
+            tone={feed.current.tone}
+            text={feed.current.text}
+            tag={feed.current.tag}
+          />
+          <div className="map-legend">
+            <span className="legend-title">Crowd</span>
+            <div className="legend-bar" />
+            <div className="legend-scale">
+              <span>Quiet</span>
+              <span>Packed</span>
+            </div>
           </div>
         </div>
+        <GameScrubber feed={feed} />
       </div>
     </main>
   );

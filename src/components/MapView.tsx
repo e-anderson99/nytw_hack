@@ -139,6 +139,20 @@ function buildMask(features: HoodFeature[]) {
   };
 }
 
+// Tight lng/lat bounds around a set of features, so we can frame the camera on
+// the actual city footprint instead of a fixed center/zoom.
+function boundsOf(features: HoodFeature[]) {
+  const b = new maplibregl.LngLatBounds();
+  for (const f of features) {
+    const g = f.geometry;
+    const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    for (const rings of polys)
+      for (const ring of rings)
+        for (const pt of ring) b.extend(pt as [number, number]);
+  }
+  return b;
+}
+
 // Fetch the neighborhood (NTA) geometry and layer on: the everything-else mask,
 // the white neighborhood borders, and per-neighborhood name labels.
 async function addNeighborhoods(map: maplibregl.Map) {
@@ -148,6 +162,19 @@ async function addNeighborhoods(map: maplibregl.Map) {
   ]);
   const features = hoodRaw.features.filter((f) => !EXCLUDED_BOROS.has(f.properties.boro ?? ""));
   const fc: HoodFeatureCollection = { type: "FeatureCollection", features };
+
+  // Frame the camera on the actual NYC footprint and make that the most
+  // zoomed-out view, so the city fills the panel instead of floating in black.
+  const nyc = boundsOf(
+    boroRaw.features.filter((f) => !EXCLUDED_BOROS.has(f.properties.boro ?? "")),
+  );
+  map.fitBounds(nyc, { padding: 12, animate: false });
+  map.setMinZoom(map.getZoom() - 0.05); // can't zoom out past the framed city
+  const pad = 0.04; // small lng/lat cushion so panning doesn't hit a hard wall
+  map.setMaxBounds([
+    [nyc.getWest() - pad, nyc.getSouth() - pad],
+    [nyc.getEast() + pad, nyc.getNorth() + pad],
+  ]);
 
   map.addSource("hoods", { type: "geojson", data: fc });
   // The mask is built from the clean borough outlines (not the 197-piece
@@ -231,8 +258,8 @@ export default function MapView({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: buildStyle(pmtilesUrl),
-      center: [-73.95, 40.7],
-      zoom: 10.4,
+      center: [-73.92, 40.72], // refined by fitBounds() once geometry loads
+      zoom: 9.6,
       minZoom: 9.5,
       maxZoom: 15,
       attributionControl: false,

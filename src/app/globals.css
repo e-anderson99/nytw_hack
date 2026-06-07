@@ -621,12 +621,113 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---------- map ---------- */
 .map-wrap {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: #000;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   min-height: 0;
+}
+
+/* The map fills all space above the scrubber; positioned so the legend and
+   shockwave layers anchor to the map, not the scrubber row below it. */
+.map-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---------- game scrubber (YouTube-style progress bar) ---------- */
+.scrubber {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: #000;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.scrubber-toggle {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--knicks-orange);
+  color: #000;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.scrubber-toggle:hover {
+  filter: brightness(1.08);
+  transform: scale(1.06);
+}
+
+.scrubber-track-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Native range, restyled: orange played portion, black remaining track. */
+.scrubber-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  cursor: pointer;
+  background: linear-gradient(
+    90deg,
+    var(--knicks-orange) 0%,
+    var(--knicks-orange) var(--pct, 0%),
+    rgba(255, 255, 255, 0.22) var(--pct, 0%),
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  outline: none;
+}
+.scrubber-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--knicks-orange);
+  border: 2px solid #000;
+  box-shadow: 0 0 0 1px rgba(244, 131, 38, 0.6);
+  transition: transform 0.12s ease;
+}
+.scrubber-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.scrubber-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--knicks-orange);
+  border: 2px solid #000;
+}
+.scrubber-range:focus-visible {
+  box-shadow: 0 0 0 2px rgba(244, 131, 38, 0.5);
+}
+
+.scrubber-time {
+  flex: none;
+  min-width: 74px;
+  text-align: right;
+  font-size: var(--apple-caption-1, 12px);
+  font-weight: var(--apple-semibold, 600);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.2px;
 }
 
 .map-image {
