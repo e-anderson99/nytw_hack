@@ -5,7 +5,7 @@
 
 import type { CrowdCell, SubwayState, Venue } from "@/types";
 import type { CrowdContext } from "./crowd";
-import { predictAt, predictGrid } from "./crowd";
+import { predictAt, predictHeatCells } from "./crowd";
 import { VENUES } from "@/data/venues";
 import { STATIONS } from "@/data/subway";
 
@@ -41,8 +41,8 @@ export function buildTimeline(
     t <= nightEndMs && frames.length < MAX_FRAMES;
     t += stepMs
   ) {
-    // Grid heat at this time (round only the intensity, never lat/lng).
-    const cells = predictGrid(ctx, 6, 1600, t).map((c) => ({
+    // Citywide heat at this time (round only the intensity, never lat/lng).
+    const cells = predictHeatCells(ctx, t).map((c) => ({
       ...c,
       intensity: r(c.intensity),
     }));

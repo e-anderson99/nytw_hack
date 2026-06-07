@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildContext, predictGrid } from "@/lib/crowd";
+import { buildContext, predictHeatCells } from "@/lib/crowd";
 
-// GET /api/crowd?tNow=&tFuture=&gameId= — predictive heat-map grid around MSG.
-// Each cell intensity = predicted_crowd(current × temporal_drift, baseline).
+// GET /api/crowd?tNow=&tFuture=&gameId= — citywide predictive heat field.
+// One cell per crowd node (MSG + venues + every station); intensity =
+// predicted_crowd(current × temporal_drift, baseline).
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const ctx = await buildContext(searchParams);
-  const cells = predictGrid(ctx);
+  const cells = predictHeatCells(ctx);
 
   return NextResponse.json({
     gameState: ctx.gameState,

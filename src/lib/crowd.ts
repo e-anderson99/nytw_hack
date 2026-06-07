@@ -4,12 +4,12 @@
 
 import type { CrowdCell, GameState } from "@/types";
 import { getGameState } from "./sources/nba";
-import { mtaHourIndex } from "./sources/mta";
 import { STATIONS } from "@/data/subway";
+import { stationRidershipIndex } from "@/data/stations";
 import { VENUES } from "@/data/venues";
-import { currentCrowd, predictedCrowd, driftPhaseFor } from "./score";
+import { impactScaler, predictedCrowd, driftPhaseFor } from "./score";
 import { historicalBaseline } from "./baselines";
-import { MSG, clamp01, distanceMeters } from "./predict";
+import { MSG, clamp01, distanceMeters, distanceDecay } from "./predict";
 
 /** Typical minutes from tipoff to final buzzer — must match the build script. */
 export const GAME_DURATION_MIN = 150;
@@ -44,13 +44,14 @@ export async function buildContext(
   const endMs =
     new Date(gameState.tipoffISO).getTime() + GAME_DURATION_MIN * 60_000;
 
-  const tNowISO = new Date(tNowMs).toISOString();
+  // Live crowd index per station, read once from the bundled MTA snapshot at
+  // tNow and reused across every future frame (the time variation comes from
+  // temporal drift + baseline, not a re-read).
+  const tNow = new Date(tNowMs);
   const stationIndex: Record<string, number> = {};
-  await Promise.all(
-    STATIONS.map(async (s) => {
-      stationIndex[s.stationId] = await mtaHourIndex(s.stationId, tNowISO);
-    }),
-  );
+  for (const s of STATIONS) {
+    stationIndex[s.stationId] = stationRidershipIndex(s.stationId, tNow);
+  }
 
   return { gameState, tNowMs, tFutureMs, deltaMin, endMs, stationIndex };
 }
@@ -84,7 +85,11 @@ export function predictAt(
   tFutureMs: number = ctx.tFutureMs,
 ): number {
   const mtaIdx = ctx.stationIndex[nearestStationId(point)] ?? 0.5;
-  const currentNow = clamp01(currentCrowd(mtaIdx, ctx.gameState));
+  // The game's crowd surge is centered on MSG — let it amplify nearby stations
+  // but fade to the raw ridership index out in the boroughs, so a close game
+  // doesn't falsely light up the whole map. (decay = 1 at MSG → 0 far away.)
+  const localImpact = 1 + (impactScaler(ctx.gameState) - 1) * distanceDecay(point);
+  const currentNow = clamp01(mtaIdx * localImpact);
 
   // Same formula as buildContext, so the default path equals ctx.deltaMin.
   const deltaMin = Math.max(0, (tFutureMs - ctx.tNowMs) / 60_000);
@@ -107,80 +112,40 @@ export function predictAt(
   return predictedCrowd(currentNow, baselineFuture, deltaMin, phase);
 }
 
-// Heat hotspots: a grid cell's intensity is a distance-weighted sum (kernel
-// density) of the predicted crowd at the real crowd nodes — MSG plus every
-// venue and station. Hot anchors and dense clusters (the Midtown bars around
-// the Garden) pile up into hotspots; empty blocks stay cool. Tune the sigmas
-// (falloff radius, meters), the MSG epicenter boost, and the overall scale.
-const HEAT_SCALE = 0.62;
-const MSG_SIGMA_M = 450;
-const VENUE_SIGMA_M = 220;
-const STATION_SIGMA_M = 320;
+// Epicenter boost so MSG itself reads as the hottest point during the game.
 const MSG_BOOST = 1.3;
 
-interface HeatAnchor {
-  lat: number;
-  lng: number;
-  /** Predicted crowd 0-1 at this node, for the given time. */
-  weight: number;
-  /** Gaussian falloff radius in meters. */
-  sigma: number;
-}
-
 /**
- * Build a square heat-map grid centered on MSG. `half` cells in each direction,
- * spanning ~`spanMeters`. Intensity is a kernel-density field over the crowd
- * anchors, so it shows spatial hotspots rather than a flat wash.
+ * Citywide heat field: one cell per real crowd node — MSG, every venue, and
+ * every subway complex in the dataset — with intensity = predicted crowd there.
+ * The map's heatmap layer smooths these points into a continuous field, so the
+ * heat now covers the whole system (every station, all five boroughs) instead
+ * of a fixed box around the Garden. Outer stations read at their own ridership
+ * level; the game surge concentrates around MSG via predictAt's distance decay.
  */
-export function predictGrid(
+export function predictHeatCells(
   ctx: CrowdContext,
-  half = 6,
-  spanMeters = 1600,
   tFutureMs: number = ctx.tFutureMs,
 ): CrowdCell[] {
-  // Each real crowd node's predicted crowd at this time, with a falloff radius.
-  const anchors: HeatAnchor[] = [
+  const cells: CrowdCell[] = [
     {
+      id: "msg",
       lat: MSG.lat,
       lng: MSG.lng,
-      weight: clamp01(predictAt(ctx, "msg", MSG, tFutureMs) * MSG_BOOST),
-      sigma: MSG_SIGMA_M,
+      intensity: clamp01(predictAt(ctx, "msg", MSG, tFutureMs) * MSG_BOOST),
     },
     ...VENUES.map((v) => ({
+      id: `venue-${v.id}`,
       lat: v.lat,
       lng: v.lng,
-      weight: predictAt(ctx, v.id, v, tFutureMs),
-      sigma: VENUE_SIGMA_M,
+      intensity: predictAt(ctx, v.id, v, tFutureMs),
     })),
     ...STATIONS.map((s) => ({
+      id: `station-${s.stationId}`,
       lat: s.lat,
       lng: s.lng,
-      weight: predictAt(ctx, s.stationId, s, tFutureMs),
-      sigma: STATION_SIGMA_M,
+      intensity: predictAt(ctx, s.stationId, s, tFutureMs),
     })),
   ];
-
-  const cells: CrowdCell[] = [];
-  const mPerDegLat = 111_320;
-  const mPerDegLng = 111_320 * Math.cos((MSG.lat * Math.PI) / 180);
-  const step = spanMeters / half;
-
-  for (let i = -half; i <= half; i++) {
-    for (let j = -half; j <= half; j++) {
-      const lat = MSG.lat + (i * step) / mPerDegLat;
-      const lng = MSG.lng + (j * step) / mPerDegLng;
-      let sum = 0;
-      for (const a of anchors) {
-        const d = distanceMeters({ lat, lng }, a);
-        sum += a.weight * Math.exp(-(d * d) / (2 * a.sigma * a.sigma));
-      }
-      cells.push({
-        id: `cell-${i}-${j}`,
-        lat,
-        lng,
-        intensity: clamp01(sum * HEAT_SCALE),
-      });
-    }
-  }
   return cells;
 }

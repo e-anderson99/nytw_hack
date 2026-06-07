@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "build:stations": "tsx scripts/build-stations.ts",
     "build:baselines": "tsx scripts/build-baselines.ts",
     "enrich:venues": "tsx scripts/enrich-venues.ts"
   },
