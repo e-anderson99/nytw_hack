@@ -40,8 +40,8 @@ export default function ScorePanel({
           <Image
             src="/knicks-logo.png"
             alt={`${HOME.fullName} logo`}
-            width={84}
-            height={84}
+            width={696}
+            height={572}
             className="team-logo-img"
             priority
           />
@@ -59,13 +59,15 @@ export default function ScorePanel({
         </div>
 
         <div className="score-team away">
+          {/* unoptimized — Next.js recompression washes out the silver spur */}
           <Image
             src="/spurs-logo.png"
             alt={`${AWAY.fullName} logo`}
-            width={84}
-            height={84}
-            className="team-logo-img"
+            width={409}
+            height={336}
+            className="team-logo-img team-logo-img--spurs"
             priority
+            unoptimized
           />
           <span className="team-name">{AWAY.fullName}</span>
         </div>
