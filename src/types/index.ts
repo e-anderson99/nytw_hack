@@ -40,6 +40,8 @@ export interface CrowdCell {
 export interface Venue {
   id: string;
   name: string;
+  /** Street address — used for BestTime venue matching and display. */
+  address: string;
   lat: number;
   lng: number;
   price: PriceTier;
