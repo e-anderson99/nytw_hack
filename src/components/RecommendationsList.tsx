@@ -7,7 +7,6 @@ import { crowdLabel, type MockSpot } from "@/data/mockSpots";
 
 interface RecommendationsListProps {
   spots: MockSpot[];
-  showFriends: boolean;
   focusedId?: string | null;
   onFocus?: (id: string | null) => void;
 }
@@ -22,7 +21,6 @@ function thumbGradient(id: string): string {
 
 export default function RecommendationsList({
   spots,
-  showFriends,
   focusedId,
   onFocus,
 }: RecommendationsListProps) {
@@ -30,7 +28,7 @@ export default function RecommendationsList({
 
   return (
     <section className="card glass card--places" aria-label="In your map">
-      <h2 className="card-title">In your map</h2>
+      <span className="prefs-eyebrow">In your map</span>
 
       <div className="places-grid">
         {top.length === 0 && (
@@ -57,9 +55,6 @@ export default function RecommendationsList({
               </div>
               <span className="place-meta">
                 {crowdLabel(spot.crowd)} · avg age {spot.avgAge} · {walkMins} min
-                {showFriends && spot.friendsHere > 0
-                  ? ` · ${spot.friendsHere} friends`
-                  : ""}
               </span>
             </button>
           );

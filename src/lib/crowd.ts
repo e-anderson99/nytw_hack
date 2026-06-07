@@ -8,7 +8,7 @@ import { mtaHourIndex } from "./sources/mta";
 import { STATIONS } from "@/data/subway";
 import { currentCrowd, predictedCrowd, driftPhaseFor } from "./score";
 import { historicalBaseline } from "./baselines";
-import { MSG, clamp01, distanceDecay, distanceMeters } from "./predict";
+import { MSG, clamp01, distanceMeters } from "./predict";
 
 /** Typical minutes from tipoff to final buzzer — must match the build script. */
 export const GAME_DURATION_MIN = 150;
@@ -79,9 +79,7 @@ export function predictAt(
   point: { lat: number; lng: number },
 ): number {
   const mtaIdx = ctx.stationIndex[nearestStationId(point)] ?? 0.5;
-  // Spatial spread: full weight at MSG, never fully zero a few blocks out.
-  const spatial = 0.3 + 0.7 * distanceDecay(point);
-  const currentNow = clamp01(currentCrowd(mtaIdx, ctx.gameState) * spatial);
+  const currentNow = clamp01(currentCrowd(mtaIdx, ctx.gameState));
 
   const minutesRelToEndFuture = (ctx.tFutureMs - ctx.endMs) / 60_000;
   const dowFuture = new Date(ctx.tFutureMs).getDay();

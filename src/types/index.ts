@@ -129,6 +129,8 @@ export interface GameEvent {
 export interface CrowdFilters {
   /** Max crowd tolerance, 0 (dead only) → 1 (packed is fine). */
   maxCrowd: number;
+  /** Target crowd age for matching spots. */
+  preferredAge: number;
   /** Acceptable price tiers. */
   prices: PriceTier[];
   /** Max walking distance from MSG, in meters. */
