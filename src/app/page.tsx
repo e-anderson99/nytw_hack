@@ -4,10 +4,12 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CrowdFilters } from "@/types";
 import { useGameFeed } from "@/lib/useGameFeed";
+import { useHeatTimeline } from "@/lib/useHeatTimeline";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
+import TimeScrubber from "@/components/TimeScrubber";
 import LiveChat from "@/components/LiveChat";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
@@ -47,6 +49,13 @@ export default function Home() {
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
+  // Heat timeline (now -> 2am); the scrubber picks which frame to render.
+  const heat = useHeatTimeline({ stepMin: 2 });
+  const frames = heat.data?.frames ?? [];
+  const [frameIdx, setFrameIdx] = useState(0);
+  const safeFrameIdx = frames.length ? Math.min(frameIdx, frames.length - 1) : 0;
+  const heatCells = frames[safeFrameIdx]?.cells ?? [];
+
   const spots = useMemo(() => rankSpots(filters), [filters]);
 
   return (
@@ -69,7 +78,12 @@ export default function Home() {
           tone={feed.current.tone}
           text={feed.current.text}
           tag={feed.current.tag}
+          heatCells={heatCells}
+          spots={spots}
+          focusedId={focusedId}
+          onFocusSpot={setFocusedId}
         />
+
         <div className="map-legend">
           <span className="legend-title">Crowd</span>
           <div className="legend-bar" />
@@ -78,6 +92,12 @@ export default function Home() {
             <span>Packed</span>
           </div>
         </div>
+
+        <TimeScrubber
+          frames={frames}
+          index={safeFrameIdx}
+          onChange={setFrameIdx}
+        />
       </div>
 
       <LiveChat feed={feed} />
