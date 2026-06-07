@@ -178,29 +178,31 @@ body {
 }
 
 .score-board {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: clamp(12px, 2vw, 44px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 clamp(4px, 1.5vw, 28px);
+  min-height: clamp(80px, 8vw, 110px);
 }
 
 .score-team {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: clamp(8px, 0.9vw, 14px);
-  min-width: 0;
+  text-align: center;
+  flex: 0 0 auto;
+  z-index: 1;
+  max-width: 42%;
 }
 
 .score-team.home {
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
 }
 
 .score-team.away {
-  order: 3;
-  align-items: flex-end;
-  text-align: right;
+  align-items: center;
 }
 
 .team-logo-img {
@@ -208,7 +210,12 @@ body {
   height: clamp(56px, 5vw, 84px);
   flex: none;
   object-fit: contain;
+  background: transparent;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.team-logo-img--spurs {
+  filter: none;
 }
 
 .team-name {
@@ -217,15 +224,22 @@ body {
   line-height: 1.25;
   letter-spacing: -0.23px;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .score-points {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(14px, 1.8vw, 34px);
+  gap: clamp(8px, 1.2vw, 22px);
   height: clamp(56px, 5vw, 84px);
-  font-size: clamp(40px, 4.2vw, 64px);
+  font-size: clamp(32px, 3.6vw, 56px);
+  pointer-events: none;
+  z-index: 0;
   font-weight: var(--apple-medium);
   line-height: 1;
   letter-spacing: -0.5px;
@@ -233,6 +247,8 @@ body {
 }
 
 .score-points .num {
+  min-width: 2.5ch;
+  text-align: center;
   transition: color 0.3s, transform 0.3s;
 }
 .score-points .num.is-leading {
@@ -260,22 +276,18 @@ body {
   flex: 1;
   min-height: 0;
   position: relative;
-}
-
-.events-scroll::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 6px;
-  height: 32px;
-  background: linear-gradient(
+  /* Fade the feed out at the bottom edge by going transparent — works on
+     the glass card regardless of what's behind it. */
+  -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent,
-    rgba(8, 28, 58, 0.55)
+    #000 calc(100% - 28px),
+    transparent
   );
-  pointer-events: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 28px),
+    transparent
+  );
 }
 
 .events-list {
