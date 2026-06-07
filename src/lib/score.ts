@@ -1,6 +1,6 @@
 // Continuous-time, score-aware crowd model.
 //
-//   current_crowd(location, t)   = mta_index(station, t) × score_heat_multiplier
+//   current_crowd(location, t)   = mta_index_30(station, t) × impact_scaler
 //   predicted_crowd(location, tF) = blend(current × temporal_drift, historical)
 //
 // All functions here are pure so they can be unit-tested and reused by the API
@@ -43,19 +43,32 @@ export function scoreHeatMultiplier(
 }
 
 /**
- * current_crowd at a single location: the live MTA index (0→1, "unusually high
- * for this time") scaled by the score-heat multiplier.
+ * Impact scaler — the event-driven multiplier applied to the raw 30-min MTA
+ * index to turn "unusually busy turnstiles" into a crowd level. This is where
+ * the game-impact signal will live: score-heat, sellout, opponent draw,
+ * weather, day-of-week, etc.
+ *
+ * PLACEHOLDER — to be built out soon. Returns 1.0 (identity) for now, so
+ * current_crowd == mta_index_30. `scoreHeatMultiplier` above is the prime
+ * candidate ingredient for the first real version:
+ *   scoreHeatMultiplier(game.scoreDiff, game.clockMinRemaining,
+ *                       game.gameLengthMin, game.status === "live")
  */
-export function currentCrowd(mtaIndex: number, game: GameState): number {
-  return (
-    mtaIndex *
-    scoreHeatMultiplier(
-      game.scoreDiff,
-      game.clockMinRemaining,
-      game.gameLengthMin,
-      game.status === "live",
-    )
-  );
+export function impactScaler(game: GameState): number {
+  void game; // referenced so the param survives until the real impl lands
+  return 1.0;
+}
+
+/**
+ * current_crowd at a single location:
+ *
+ *   current_crowd = mta_index_30 × impact_scaler
+ *
+ * `mtaIndex30` is the live 30-minute MTA index (0→1, "unusually high for this
+ * time"); `impactScaler` is the event-impact multiplier (stubbed for now).
+ */
+export function currentCrowd(mtaIndex30: number, game: GameState): number {
+  return mtaIndex30 * impactScaler(game);
 }
 
 /**
