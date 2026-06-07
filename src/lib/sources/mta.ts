@@ -23,8 +23,13 @@ const HIGH_RATIO = 2.5;
  * `station_complex` strings. These may need tuning against the live dataset's
  * exact labels; adjust here if a query returns no rows.
  */
-export const STATION_COMPLEX: Record<string, string> = {
-  "34st-penn": "34 St-Penn Station (1,2,3,A,C,E)",
+// A station may map to multiple dataset complexes (summed together). Penn is
+// split into the IRT (1,2,3) and IND (A,C,E) complexes in this dataset.
+export const STATION_COMPLEX: Record<string, string | string[]> = {
+  "34st-penn": [
+    "34 St-Penn Station (1,2,3)",
+    "34 St-Penn Station (A,C,E)",
+  ],
   "34st-herald": "34 St-Herald Sq (B,D,F,M,N,Q,R,W)",
   "28st": "28 St (1)",
 };
@@ -53,16 +58,23 @@ function hourFloorISO(d: Date): string {
  * Used both by mtaHourIndex (small windows) and the baseline build script.
  */
 export async function fetchHourlyRidership(
-  stationComplex: string,
+  stationComplex: string | string[],
   startISO: string,
   endISO: string,
   limit = 50000,
 ): Promise<RidershipRow[]> {
-  const where = `station_complex='${stationComplex.replace(/'/g, "''")}' AND transit_timestamp >= '${startISO}' AND transit_timestamp < '${endISO}'`;
+  const complexes = Array.isArray(stationComplex)
+    ? stationComplex
+    : [stationComplex];
+  const inList = complexes
+    .map((c) => `'${c.replace(/'/g, "''")}'`)
+    .join(",");
+  // Sum across all mapped complexes per timestamp (group by timestamp only).
+  const where = `station_complex IN (${inList}) AND transit_timestamp >= '${startISO}' AND transit_timestamp < '${endISO}'`;
   const params = new URLSearchParams({
-    $select: "station_complex,transit_timestamp,sum(ridership) as ridership",
+    $select: "transit_timestamp,sum(ridership) as ridership",
     $where: where,
-    $group: "station_complex,transit_timestamp",
+    $group: "transit_timestamp",
     $order: "transit_timestamp ASC",
     $limit: String(limit),
   });
@@ -74,8 +86,9 @@ export async function fetchHourlyRidership(
     });
     if (!res.ok) return [];
     const rows = (await res.json()) as Array<Record<string, string>>;
+    const label = complexes.join(" + ");
     return rows.map((r) => ({
-      station_complex: r.station_complex,
+      station_complex: label,
       transit_timestamp: r.transit_timestamp,
       ridership: Number(r.ridership ?? 0),
     }));

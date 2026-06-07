@@ -1,10 +1,29 @@
 import type { Venue } from "@/types";
+import googleOverlay from "./venues.google.json";
+
+/** A seeded venue before per-request crowd/wait are computed. */
+export type SeedVenue = Omit<Venue, "crowd" | "waitMins">;
+
+/** Subset of fields the Google enrichment script overlays, keyed by venue id. */
+type GoogleOverlay = Record<
+  string,
+  Partial<
+    Pick<
+      Venue,
+      "lat" | "lng" | "placeId" | "rating" | "userRatingsTotal" | "googleMapsUri" | "neighborhood"
+    >
+  >
+>;
 
 // Bars near Madison Square Garden (~33rd & 7th/8th). `crowd` and `waitMins` are
 // computed per-request by the prediction layer, so the seed omits them.
-// Addresses are real (used for BestTime venue matching); lat/lng are approximate
-// and drive the map + distance-decay math.
-export const VENUES: Omit<Venue, "crowd" | "waitMins">[] = [
+// Addresses are real (used for BestTime venue matching); the seed lat/lng are
+// approximate and drive the map + distance-decay math until enrichment runs.
+//
+// Run `npm run enrich:venues` (needs GOOGLE_PLACES_API_KEY) to resolve each
+// venue against Google Places and write venues.google.json, which is overlaid
+// below to give the interactive map exact coordinates + place IDs + ratings.
+const SEED: SeedVenue[] = [
   {
     id: "stout-nyc",
     name: "Stout NYC",
@@ -256,3 +275,14 @@ export const VENUES: Omit<Venue, "crowd" | "waitMins">[] = [
     capacity: 110,
   },
 ];
+
+// Overlay Google Places data (exact coords, place IDs, ratings) onto the seed
+// when present. The static seed remains the source of truth for the recommendation
+// engine; Google fields just sharpen what the map shows. Missing entries fall
+// back to the hand-tuned seed values, so the app works with no API key.
+const overlay = googleOverlay as GoogleOverlay;
+
+export const VENUES: SeedVenue[] = SEED.map((v) => ({
+  ...v,
+  ...overlay[v.id],
+}));

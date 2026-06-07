@@ -17,27 +17,28 @@
 
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-
-// Minimal .env.local loader — this standalone script doesn't get Next.js's
-// automatic env loading, and we don't want a dotenv dependency. Only sets keys
-// not already present in the environment (so inline `KEY=... npm run` wins).
-(function loadEnvLocal() {
-  const envPath = resolve(process.cwd(), ".env.local");
-  if (!existsSync(envPath)) return;
-  for (const line of readFileSync(envPath, "utf8").split("\n")) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (!m || m[1].startsWith("#")) continue;
-    const key = m[1];
-    const val = m[2].replace(/^["']|["']$/g, "");
-    if (process.env[key] === undefined && val !== "") process.env[key] = val;
-  }
-})();
-
 import { EVENTS } from "@/data/events";
 import { STATIONS } from "@/data/subway";
 import { VENUES } from "@/data/venues";
 import { fetchHourlyRidership, STATION_COMPLEX } from "@/lib/sources/mta";
 import { fetchVenueWeeklyCurve } from "@/lib/sources/popularTimes";
+
+// Minimal .env.local loader — this standalone script doesn't get Next.js's
+// automatic env loading, and we don't want a dotenv dependency. Env values are
+// read lazily (at fetch time) by the source adapters, so setting them here in
+// the module body runs before main(). Only fills keys not already in the
+// environment, so inline `KEY=... npm run build:baselines` still wins.
+(function loadEnvLocal() {
+  const envPath = resolve(process.cwd(), ".env.local");
+  if (!existsSync(envPath)) return;
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
+    if (!m) continue;
+    const key = m[1];
+    const val = m[2].replace(/^["']|["']$/g, "");
+    if (process.env[key] === undefined && val !== "") process.env[key] = val;
+  }
+})();
 
 const OUT_DIR = resolve(process.cwd(), "src/data/baselines");
 const HOURS_IN_WEEK = 168;

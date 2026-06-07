@@ -53,6 +53,20 @@ export interface Venue {
   waitMins: number;
   /** Approximate standing capacity, used to derive wait from crowd. */
   capacity: number;
+
+  // --- Google Places enrichment (populated by scripts/enrich-venues.ts) ---
+  // The static seed ships without these; running the enrichment script overlays
+  // them so the interactive Google map can pin exact locations and show ratings.
+  /** Google Places place ID — the stable join key to Google's data. */
+  placeId?: string;
+  /** Google star rating, 0–5. */
+  rating?: number;
+  /** Number of Google ratings backing `rating`. */
+  userRatingsTotal?: number;
+  /** Deep link to the venue on Google Maps. */
+  googleMapsUri?: string;
+  /** Neighborhood label (e.g. "Hell's Kitchen"), for grouping/filtering. */
+  neighborhood?: string;
 }
 
 export interface SubwayState {

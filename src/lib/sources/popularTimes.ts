@@ -8,14 +8,16 @@
 
 const FORECAST_URL = "https://besttime.app/api/v1/forecasts";
 
-/** Day index 0=Mon..6=Sun in BestTime; we convert to JS 0=Sun..6=Sat. */
-interface BestTimeDay {
-  day_int: number;
-  day_raw: number[]; // 24 hourly values, 0-100
+// BestTime POST /forecasts returns `analysis` as a 7-element array (one per
+// day). Each entry carries `day_info.day_int` (0=Mon..6=Sun) and `day_raw`,
+// 24 hourly busyness values 0-100 relative to the venue's weekly peak.
+interface BestTimeAnalysisDay {
+  day_info?: { day_int: number };
+  day_raw?: number[];
 }
 interface BestTimeForecastResponse {
-  analysis?: { week_raw?: number[] }; // 168 values (some plans)
-  week?: BestTimeDay[];
+  status?: string;
+  analysis?: BestTimeAnalysisDay[];
 }
 
 export interface VenueWeeklyCurve {
@@ -57,26 +59,17 @@ export async function fetchVenueWeeklyCurve(
       new Array(24).fill(0),
     );
 
-    if (data.week?.length) {
-      for (const d of data.week) {
-        const js = toJsDay(d.day_int);
-        for (let h = 0; h < 24 && h < d.day_raw.length; h++) {
-          byDayHour[js][h] = Math.max(0, Math.min(1, d.day_raw[h] / 100));
-        }
+    if (!data.analysis?.length) return null;
+    for (const d of data.analysis) {
+      const dayInt = d.day_info?.day_int;
+      const raw = d.day_raw;
+      if (dayInt == null || !raw) continue;
+      const js = toJsDay(dayInt);
+      for (let h = 0; h < 24 && h < raw.length; h++) {
+        byDayHour[js][h] = Math.max(0, Math.min(1, raw[h] / 100));
       }
-      return { byDayHour };
     }
-
-    if (data.analysis?.week_raw?.length === 168) {
-      const raw = data.analysis.week_raw;
-      for (let i = 0; i < 168; i++) {
-        const js = toJsDay(Math.floor(i / 24));
-        byDayHour[js][i % 24] = Math.max(0, Math.min(1, raw[i] / 100));
-      }
-      return { byDayHour };
-    }
-
-    return null;
+    return { byDayHour };
   } catch {
     return null;
   }
