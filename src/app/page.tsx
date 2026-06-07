@@ -11,6 +11,7 @@ import RecommendationsList from "@/components/RecommendationsList";
 import MapView from "@/components/MapView";
 import GameScrubber from "@/components/GameScrubber";
 import TimeScrubber from "@/components/TimeScrubber";
+import LiveChat from "@/components/LiveChat";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
 const DEFAULT_FILTERS: CrowdFilters = {
@@ -97,6 +98,8 @@ export default function Home() {
           onChange={setFrameIdx}
         />
       </div>
+
+      <LiveChat feed={feed} />
     </main>
   );
 }
