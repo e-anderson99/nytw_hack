@@ -4,10 +4,14 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { CrowdFilters } from "@/types";
 import { useGameFeed } from "@/lib/useGameFeed";
+import { useHeatTimeline } from "@/lib/useHeatTimeline";
+import { projectToMap } from "@/lib/mapProjection";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
+import HeatLayer from "@/components/HeatLayer";
+import TimeScrubber from "@/components/TimeScrubber";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
 const DEFAULT_FILTERS: CrowdFilters = {
@@ -17,26 +21,6 @@ const DEFAULT_FILTERS: CrowdFilters = {
   maxWalkMeters: 1500,
   vibes: [],
 };
-
-// Project a lat/lng onto the static map image as left/top percentages, anchored
-// on the MSG pin (.map-pin is at 47% / 44%). spanM = meters the image spans
-// across its full width/height — tune to match /nyc-map.png framing.
-const MSG = { lat: 40.7505, lng: -73.9934 };
-const MAP_FRAME = { leftPct: 47, topPct: 44, spanXm: 3800, spanYm: 3000 };
-
-function projectToMap(lat: number, lng: number): { left: number; top: number } {
-  const mPerLat = 111_320;
-  const mPerLng = 111_320 * Math.cos((MSG.lat * Math.PI) / 180);
-  const east = (lng - MSG.lng) * mPerLng;
-  const north = (lat - MSG.lat) * mPerLat;
-  const left = MAP_FRAME.leftPct + (east / MAP_FRAME.spanXm) * 100;
-  const top = MAP_FRAME.topPct - (north / MAP_FRAME.spanYm) * 100;
-  // Keep pins inside the frame.
-  return {
-    left: Math.max(4, Math.min(96, left)),
-    top: Math.max(5, Math.min(95, top)),
-  };
-}
 
 // Mock ranking: respect the filters, then favor quiet + close + on-age spots.
 function rankSpots(filters: CrowdFilters): MockSpot[] {
@@ -63,6 +47,13 @@ export default function Home() {
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
+  // Heat timeline (now -> 2am); the scrubber picks which frame to render.
+  const heat = useHeatTimeline({ stepMin: 2 });
+  const frames = heat.data?.frames ?? [];
+  const [frameIdx, setFrameIdx] = useState(0);
+  const safeFrameIdx = frames.length ? Math.min(frameIdx, frames.length - 1) : 0;
+  const heatCells = frames[safeFrameIdx]?.cells ?? [];
+
   const spots = useMemo(() => rankSpots(filters), [filters]);
 
   return (
@@ -87,6 +78,10 @@ export default function Home() {
           sizes="50vw"
           className="map-image"
         />
+
+        {/* Predictive heat field for the selected time. */}
+        {heatCells.length > 0 && <HeatLayer cells={heatCells} />}
+
         <div className="map-pin" aria-hidden>
           <span className="map-pin-dot" />
           <span className="map-pin-label">MSG</span>
@@ -120,6 +115,12 @@ export default function Home() {
             <span>Packed</span>
           </div>
         </div>
+
+        <TimeScrubber
+          frames={frames}
+          index={safeFrameIdx}
+          onChange={setFrameIdx}
+        />
       </div>
     </main>
   );
