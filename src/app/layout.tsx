@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Anton } from "next/font/google";
 import "./globals.css";
+
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Knicks Watch Map — Find your spot around MSG",
@@ -13,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`h-full antialiased ${anton.variable}`}>
       <body className="h-full">{children}</body>
     </html>
   );

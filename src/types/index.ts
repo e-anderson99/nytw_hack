@@ -4,6 +4,39 @@
 // state (score gap + clock) blended with a precomputed historical baseline,
 // rather than a handful of discrete phases.
 
+import type { FeedTone } from "@/data/gameFeed";
+
+/** Source of a chat message in the simulated Twitch-style live chat. */
+export type ChatKind = "bot" | "user";
+
+/**
+ * Emoji reactions on a message: emoji → count. e.g. { "🔥": 3, "🧡": 1 }.
+ * Absent/empty when nobody has reacted yet.
+ */
+export type ChatReactions = Record<string, number>;
+
+/**
+ * One message in the simulated live chat. Bot messages are scripted fake-fan
+ * chatter triggered by the game feed; user messages are injected locally by the
+ * single player (free text or a prewritten quick reply). Both flow through one
+ * ordered buffer, sorted by `seq`.
+ */
+export interface ChatMessage {
+  /** Stable unique id: kind prefix + monotonic seq, e.g. "b-42", "u-7". */
+  id: string;
+  /** Display handle — a fake fan handle for bots, "You" for user messages. */
+  author: string;
+  /** Message body. User free-text is capped at 40 chars before it gets here. */
+  text: string;
+  kind: ChatKind;
+  /** Emotional color, reused from the feed taxonomy for styling. */
+  tone?: FeedTone;
+  /** Monotonic ordering key (insertion sequence). Newest = highest. */
+  seq: number;
+  /** Emoji-reaction tallies on this message (emoji → count). */
+  reactions?: ChatReactions;
+}
+
 /**
  * Live state of a game, the score-heat input to the crowd model.
  * `clockMinRemaining` counts down across the whole game (0 at the final buzzer).

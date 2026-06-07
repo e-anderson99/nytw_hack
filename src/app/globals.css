@@ -3,12 +3,20 @@
 :root {
   --knicks-blue: #0a68d1;
   --knicks-orange: #f48326;
+  /* punchier, more saturated takes used for glows/fills */
+  --knicks-blue-hot: #1e88ff;
+  --knicks-orange-hot: #ff7a1a;
   --spurs: #c4ced4;
 
-  /* design-system glass tokens */
+  /* design-system glass tokens — more solid + saturated than the old frost */
   --glass-bg: rgba(255, 255, 255, 0.19);
   --glass-border: rgba(255, 255, 255, 0.34);
   --glass-inset: inset 0px 4px 16px rgba(0, 0, 0, 0.15);
+
+  /* team-colored glow shadows for "loud but controlled" accents */
+  --orange-glow: 0 0 0 1px rgba(244, 131, 38, 0.55),
+    0 0 22px rgba(244, 131, 38, 0.4);
+  --blue-glow: 0 0 0 1px rgba(30, 136, 255, 0.6), 0 0 22px rgba(30, 136, 255, 0.42);
 
   --text: #ffffff;
   --text-dim: rgba(255, 255, 255, 0.76);
@@ -17,12 +25,17 @@
   --good: #5ff0c0;
   --bad: #ff6b6b;
 
-  --radius-lg: 20px;
-  --radius-md: 12px;
+  /* a touch tighter than the soft Apple radii */
+  --radius-lg: 16px;
+  --radius-md: 11px;
 
-  /* Apple SF Pro system stack */
+  /* Apple SF Pro system stack — body text */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Anton — condensed jumbotron display, headlines + scores only */
+  --font-display-stack: var(--font-display), "Arial Narrow", "Helvetica Neue",
+    sans-serif;
 
   /* Apple Dynamic Type scale */
   --apple-large-title: 34px;
@@ -64,15 +77,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background:
+    radial-gradient(
+      120% 80% at 72% 8%,
+      rgba(255, 122, 26, 0.45),
+      transparent 55%
+    ),
+    radial-gradient(
+      100% 70% at 10% 0%,
+      rgba(30, 136, 255, 0.4),
+      transparent 50%
+    ),
     linear-gradient(
       180deg,
-      #0a68d1 2.12%,
-      rgba(244, 131, 38, 0.5) 24.52%,
-      #000000 61.54%
+      #0a68d1 0%,
+      rgba(244, 131, 38, 0.72) 22%,
+      #050608 58%
     ),
     #000;
   background-attachment: fixed;
-  box-shadow: inset 0 0 42px 34px rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 0 42px 34px rgba(0, 0, 0, 0.22);
   overflow: hidden;
 }
 
@@ -99,8 +122,8 @@ body {
 /* ---------- glass card base ---------- */
 .glass {
   background: var(--glass-bg);
-  border: 0.5px solid var(--glass-border);
-  box-shadow: var(--glass-inset);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inset), 0 12px 40px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(9.2px);
   -webkit-backdrop-filter: blur(9.2px);
   border-radius: var(--radius-lg);
@@ -134,20 +157,25 @@ body {
 
 .card-title {
   margin: 0;
-  font-size: var(--apple-title-1);
-  font-weight: var(--apple-regular);
-  line-height: 1.214; /* 34/28 */
-  letter-spacing: -0.36px;
+  font-family: var(--font-display-stack);
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: 400; /* Anton is heavy by design */
+  line-height: 0.96;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--text);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
 }
 
 .card-eyebrow {
-  font-size: var(--apple-title-3);
-  font-weight: var(--apple-regular);
-  line-height: 1.25; /* 25/20 */
-  letter-spacing: -0.23px;
-  color: var(--text);
-  opacity: 0.92;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--knicks-orange-hot);
+  opacity: 1;
 }
 
 /* ---------- score card — Google score panel layout ---------- */
@@ -173,34 +201,59 @@ body {
 }
 
 .score-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: var(--apple-medium);
   font-variant-numeric: tabular-nums;
 }
 
+/* pulsing LIVE badge next to the clock (hidden once the game is Final) */
+.score-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--bad);
+  text-transform: uppercase;
+}
+.score-livedot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  animation: livedot 1.8s ease-in-out infinite;
+}
+
 .score-board {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: clamp(12px, 2vw, 44px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 clamp(4px, 1.5vw, 28px);
+  min-height: clamp(80px, 8vw, 110px);
 }
 
 .score-team {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: clamp(8px, 0.9vw, 14px);
-  min-width: 0;
+  text-align: center;
+  flex: 0 0 auto;
+  z-index: 1;
+  max-width: 42%;
 }
 
 .score-team.home {
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
 }
 
 .score-team.away {
-  order: 3;
-  align-items: flex-end;
-  text-align: right;
+  align-items: center;
 }
 
 .team-logo-img {
@@ -208,42 +261,79 @@ body {
   height: clamp(56px, 5vw, 84px);
   flex: none;
   object-fit: contain;
+  background: transparent;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
 
+.team-logo-img--spurs {
+  filter: none;
+}
+
 .team-name {
-  font-size: var(--apple-callout);
-  font-weight: var(--apple-medium);
-  line-height: 1.25;
-  letter-spacing: -0.23px;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.6vw, 22px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .score-points {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(14px, 1.8vw, 34px);
+  gap: clamp(8px, 1.2vw, 22px);
   height: clamp(56px, 5vw, 84px);
-  font-size: clamp(40px, 4.2vw, 64px);
-  font-weight: var(--apple-medium);
+  font-family: var(--font-display-stack);
+  font-size: clamp(44px, 4.8vw, 76px);
+  pointer-events: none;
+  z-index: 0;
+  font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.5px;
+  letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
 }
 
 .score-points .num {
-  transition: color 0.3s, transform 0.3s;
+  min-width: 2.5ch;
+  text-align: center;
+  transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
 }
 .score-points .num.is-leading {
-  color: #fff;
+  color: var(--knicks-orange-hot);
+  text-shadow: 0 0 22px rgba(255, 122, 26, 0.55);
+  animation: score-pop 0.45s cubic-bezier(0.18, 0.9, 0.28, 1.4);
+}
+/* away (Spurs) leading reads in the rival's ice-blue, not Knicks orange */
+.score-points .num.is-leading.is-away {
+  color: var(--knicks-blue-hot);
+  text-shadow: 0 0 22px rgba(30, 136, 255, 0.55);
 }
 .score-points .num.is-trailing {
   color: var(--text-faint);
 }
 .score-points .dash {
   color: var(--text-dim);
-  font-weight: var(--apple-regular);
+  font-weight: 400;
+}
+
+/* one-shot punch when a score updates / lead changes */
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ---------- events card ---------- */
@@ -260,22 +350,18 @@ body {
   flex: 1;
   min-height: 0;
   position: relative;
-}
-
-.events-scroll::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 6px;
-  height: 32px;
-  background: linear-gradient(
+  /* Fade the feed out at the bottom edge by going transparent — works on
+     the glass card regardless of what's behind it. */
+  -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent,
-    rgba(8, 28, 58, 0.55)
+    #000 calc(100% - 28px),
+    transparent
   );
-  pointer-events: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 28px),
+    transparent
+  );
 }
 
 .events-list {
@@ -322,17 +408,28 @@ body {
   -webkit-backdrop-filter: blur(5.4px);
   border-radius: var(--radius-md);
   transition:
-    border-color 0.35s ease,
-    background 0.35s ease;
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .event-chip.is-new {
-  border-color: rgba(95, 240, 192, 0.55);
-  background: rgba(95, 240, 192, 0.08);
+  border-color: rgba(95, 240, 192, 0.7);
+  background: rgba(95, 240, 192, 0.12);
+  box-shadow: 0 0 16px rgba(95, 240, 192, 0.25);
+  animation: chip-in 0.3s cubic-bezier(0.18, 0.9, 0.28, 1.2);
 }
 .event-chip.tone-bad.is-new {
-  border-color: rgba(255, 107, 107, 0.55);
-  background: rgba(255, 107, 107, 0.08);
+  border-color: rgba(255, 107, 107, 0.7);
+  background: rgba(255, 107, 107, 0.12);
+  box-shadow: 0 0 16px rgba(255, 107, 107, 0.25);
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
 }
 
 .event-chip .label {
@@ -352,11 +449,13 @@ body {
 }
 
 .event-chip .tag {
-  font-size: var(--apple-caption-2);
-  font-weight: var(--apple-semibold);
-  letter-spacing: 0.06px;
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-family: var(--font-display-stack);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.16);
 }
 .event-chip.tone-good .tag {
@@ -386,11 +485,13 @@ body {
 }
 
 .prefs-eyebrow {
-  font-size: var(--apple-subhead);
-  font-weight: var(--apple-regular);
-  line-height: 1.333;
-  letter-spacing: -0.24px;
-  color: #fff;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--knicks-orange-hot);
   flex: none;
 }
 
@@ -444,9 +545,13 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 5px;
+  height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    90deg,
+    rgba(30, 136, 255, 0.55),
+    rgba(255, 122, 26, 0.55)
+  );
   outline: none;
   cursor: pointer;
 }
@@ -456,12 +561,17 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  border: 3px solid var(--knicks-orange);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 4px solid var(--knicks-orange-hot);
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.25), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.32), 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 input[type="range"]::-moz-range-thumb {
   width: 16px;
@@ -480,15 +590,16 @@ input[type="range"]::-moz-range-thumb {
 .chip {
   padding: 6px 14px;
   border-radius: 99px;
-  border: 0.5px solid var(--glass-border);
+  border: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-dim);
   font-size: var(--apple-caption-1);
-  font-weight: var(--apple-medium);
+  font-weight: var(--apple-semibold);
   line-height: 1.333;
-  letter-spacing: 0;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.12s ease;
 }
 .chip--sm {
   padding: 4px 11px;
@@ -498,12 +609,19 @@ input[type="range"]::-moz-range-thumb {
 }
 .chip:hover {
   color: #fff;
+  border-color: rgba(255, 122, 26, 0.6);
+  transform: translateY(-1px);
 }
 .chip.is-on {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(
+    135deg,
+    var(--knicks-orange-hot),
+    var(--knicks-orange)
+  );
   border-color: transparent;
-  color: #11244a;
-  font-weight: var(--apple-semibold);
+  color: #1a0f02;
+  font-weight: var(--apple-bold);
+  box-shadow: var(--orange-glow);
 }
 
 /* ---------- places card ---------- */
@@ -538,7 +656,8 @@ input[type="range"]::-moz-range-thumb {
 .place-card:hover,
 .place-card.is-focus {
   border-color: var(--knicks-orange);
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: var(--orange-glow);
 }
 
 .place-thumb {
@@ -555,6 +674,7 @@ input[type="range"]::-moz-range-thumb {
 
 .place-thumb .rank {
   position: absolute;
+  z-index: 1;
   top: 8px;
   left: 8px;
   width: 22px;
@@ -570,6 +690,7 @@ input[type="range"]::-moz-range-thumb {
 
 .place-thumb .crowd-pill {
   position: absolute;
+  z-index: 1;
   top: 8px;
   right: 8px;
   font-size: var(--apple-caption-2);
@@ -582,6 +703,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .place-name-on-thumb {
+  position: relative;
+  z-index: 1;
   font-size: var(--apple-caption-1);
   font-weight: var(--apple-semibold);
   line-height: 1.333;
@@ -940,13 +1063,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .score-flash-tag {
-  font-size: clamp(28px, 4vw, 52px);
-  font-weight: 900;
-  letter-spacing: 2px;
-  line-height: 1;
-  color: var(--knicks-orange, #f48326);
+  font-family: var(--font-display-stack);
+  font-size: clamp(40px, 6vw, 84px);
+  font-weight: 400;
+  letter-spacing: 3px;
+  line-height: 0.9;
+  color: var(--knicks-orange-hot);
   text-transform: uppercase;
-  text-shadow: 0 0 24px rgba(255, 122, 26, 0.8);
+  text-shadow: 0 0 28px rgba(255, 122, 26, 0.9), 0 0 4px rgba(255, 255, 255, 0.5);
 }
 
 .score-flash-text {
@@ -963,6 +1087,8 @@ input[type="range"]::-moz-range-thumb {
   .score-flash,
   .score-flash-card { animation-duration: 2s; }
   .score-flash-card { animation-timing-function: ease-out; }
+  .score-points .num.is-leading,
+  .event-chip.is-new { animation: none; }
 }
 
 /* MSG pin sitting on the still map (roughly midtown-west). */
@@ -994,6 +1120,69 @@ input[type="range"]::-moz-range-thumb {
   padding: 2px 8px;
   border-radius: 99px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Predictive heat field, drawn over the map image and under the pins. */
+.heat-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  filter: blur(7px);
+  opacity: 0.82;
+}
+
+/* Time scrubber: now -> 2am, bottom-center of the map. */
+.scrubber {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 7;
+  width: min(380px, 66%);
+  padding: 12px 16px 10px;
+  color: #1b2330;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.scrubber-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.scrubber-time {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+.scrubber-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(27, 35, 48, 0.12);
+  color: #5b6470;
+}
+.scrubber-tag.is-live {
+  background: rgba(31, 174, 122, 0.18);
+  color: #128a5c;
+}
+.scrubber input[type="range"] {
+  background: rgba(27, 35, 48, 0.18);
+}
+.scrubber-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #5b6470;
 }
 
 /* Numbered recommendation pins on the still map, synced with "In your map". */
@@ -1171,6 +1360,321 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
+/* ---------- live chat (right-side drawer) ---------- */
+.chatdrawer {
+  --chat-w: clamp(280px, 24vw, 360px);
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none; /* only the tab + panel are interactive */
+}
+
+/* edge tab handle — rides the left edge of the panel, so it slides in with the
+   drawer and becomes the close (›) affordance when open. */
+.chatdrawer-tab {
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  right: 0; /* screen's right edge when closed */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 9px;
+  border: 0.5px solid var(--glass-border);
+  border-right: none;
+  border-radius: 14px 0 0 14px;
+  /* neutral dark-glass base; an orange glow flashes on each new message */
+  background: rgba(12, 18, 32, 0.72);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  color: #fff;
+  cursor: pointer;
+  /* the tab is stable (never re-mounts), so this slide transition always runs */
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s;
+}
+/* when open, ride the panel's left edge (slides smoothly via the transition) */
+.chatdrawer.is-open .chatdrawer-tab {
+  transform: translateY(-50%) translateX(calc(-1 * var(--chat-w)));
+}
+.chatdrawer-tab:hover {
+  background: rgba(20, 28, 46, 0.85);
+}
+
+/* one-shot glow overlay — keyed on each new message so it re-mounts and
+   replays without touching the button (keeps the slide transition intact) */
+.chatdrawer-tab-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: tab-glow 1.3s ease-out forwards;
+}
+@keyframes tab-glow {
+  0% {
+    box-shadow: -3px 0 22px 2px rgba(244, 131, 38, 0.95),
+      0 0 14px rgba(244, 131, 38, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 131, 38, 0);
+  }
+}
+.chatdrawer-tab-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.chatdrawer-tab-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+}
+
+/* the sliding panel */
+.chatdrawer-panel {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: var(--chat-w);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  /* a touch more opaque than the bento glass so messages read cleanly */
+  background: rgba(10, 16, 30, 0.6);
+  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chatdrawer.is-open .chatdrawer-panel {
+  transform: translateX(0);
+}
+
+.chatdrawer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(16px, 1.5vw, 24px) clamp(16px, 1.4vw, 22px) 12px;
+}
+.chatdrawer-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.chatdrawer-livedot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  animation: livedot 1.8s ease-in-out infinite;
+}
+@keyframes livedot {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* scrolling message list */
+.chatdrawer-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 4px clamp(14px, 1.3vw, 20px) 10px;
+}
+.chatdrawer-empty {
+  margin: auto;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.chat-row {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 2px solid transparent;
+  animation: row-in 0.28s ease-out;
+}
+.chat-row.tone-good {
+  border-left-color: rgba(95, 240, 192, 0.6);
+}
+.chat-row.tone-bad {
+  border-left-color: rgba(255, 107, 107, 0.6);
+}
+.chat-row.is-you {
+  background: rgba(244, 131, 38, 0.16);
+  border-left-color: var(--knicks-orange);
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.chat-row-line {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #fff;
+}
+.chat-author {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-right: 6px;
+}
+.chat-row.is-you .chat-author {
+  color: #ffd9b3;
+}
+.chat-text {
+  color: #fff;
+}
+
+.chat-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+.chat-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.32);
+}
+.chat-reaction b {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+/* glass composer dock, pinned to the bottom of the drawer */
+.chatdrawer-dock {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px clamp(14px, 1.3vw, 20px) clamp(16px, 1.5vw, 22px);
+  border-top: 0.5px solid var(--glass-border);
+  background: rgba(8, 13, 26, 0.5);
+}
+
+.chat-emoji-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.chat-emoji {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 5px 0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.chat-emoji:hover:not(:disabled) {
+  transform: scale(1.18);
+  background: rgba(255, 255, 255, 0.18);
+}
+.chat-emoji:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.chat-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-quick-row .chip {
+  padding: 4px 11px;
+  font-size: 11.5px;
+}
+.chat-quick-row .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chat-quick-row .chip:disabled:hover {
+  color: var(--text-dim);
+}
+
+.chat-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 99px;
+  padding: 8px 14px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.chat-input::placeholder {
+  color: var(--text-faint);
+}
+.chat-input:focus {
+  border-color: rgba(244, 131, 38, 0.7);
+}
+.chat-count {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.chat-send {
+  flex: none;
+  padding: 8px 16px;
+  border-radius: 99px;
+  border: none;
+  background: linear-gradient(
+    135deg,
+    var(--knicks-orange-hot),
+    var(--knicks-orange)
+  );
+  color: #1a0f02;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+.chat-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--orange-glow);
+}
+.chat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 1000px) {
   body {
@@ -1187,6 +1691,10 @@ input[type="range"]::-moz-range-thumb {
   }
   .map-wrap {
     min-height: 60vh;
+  }
+  /* Drawer stays available on mobile — collapsed by default, slides over. */
+  .chatdrawer {
+    --chat-w: min(86vw, 360px);
   }
 }
 

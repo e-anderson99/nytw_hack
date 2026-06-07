@@ -1,18 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { CrowdFilters } from "@/types";
 import { useGameFeed } from "@/lib/useGameFeed";
+import { useHeatTimeline } from "@/lib/useHeatTimeline";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
+import MapView from "@/components/MapView";
 import GameScrubber from "@/components/GameScrubber";
+import TimeScrubber from "@/components/TimeScrubber";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
-
-// MapLibre needs the browser; load the custom map view client-side only.
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 const DEFAULT_FILTERS: CrowdFilters = {
   maxCrowd: 0.7,
@@ -47,6 +46,13 @@ export default function Home() {
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
+  // Heat timeline (now -> 2am); the scrubber picks which frame to render.
+  const heat = useHeatTimeline({ stepMin: 2 });
+  const frames = heat.data?.frames ?? [];
+  const [frameIdx, setFrameIdx] = useState(0);
+  const safeFrameIdx = frames.length ? Math.min(frameIdx, frames.length - 1) : 0;
+  const heatCells = frames[safeFrameIdx]?.cells ?? [];
+
   const spots = useMemo(() => rankSpots(filters), [filters]);
 
   return (
@@ -70,6 +76,10 @@ export default function Home() {
             tone={feed.current.tone}
             text={feed.current.text}
             tag={feed.current.tag}
+            heatCells={heatCells}
+            spots={spots}
+            focusedId={focusedId}
+            onFocusSpot={setFocusedId}
           />
           <div className="map-legend">
             <span className="legend-title">Crowd</span>
@@ -81,6 +91,11 @@ export default function Home() {
           </div>
         </div>
         <GameScrubber feed={feed} />
+        <TimeScrubber
+          frames={frames}
+          index={safeFrameIdx}
+          onChange={setFrameIdx}
+        />
       </div>
     </main>
   );

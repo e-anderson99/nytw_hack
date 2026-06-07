@@ -3,6 +3,7 @@
 // "In your map" bento card: watch-spots as picture cards showing crowd level +
 // average crowd age. Pure mock data — hovering a card highlights it.
 
+import Image from "next/image";
 import { crowdLabel, type MockSpot } from "@/data/mockSpots";
 
 interface RecommendationsListProps {
@@ -11,7 +12,21 @@ interface RecommendationsListProps {
   onFocus?: (id: string | null) => void;
 }
 
-// A stable, pleasant gradient per spot so cards feel like distinct "pictures".
+const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+function streetViewUrl(lat: number, lng: number): string | null {
+  if (!GMAPS_KEY) return null;
+  const params = new URLSearchParams({
+    size: "600x300",
+    location: `${lat},${lng}`,
+    fov: "80",
+    pitch: "5",
+    key: GMAPS_KEY,
+  });
+  return `https://maps.googleapis.com/maps/api/streetview?${params}`;
+}
+
+// Fallback gradient when no API key is configured.
 function thumbGradient(id: string): string {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 17 + id.charCodeAt(i)) % 360;
@@ -39,6 +54,7 @@ export default function RecommendationsList({
 
         {top.map((spot, i) => {
           const walkMins = Math.max(1, Math.round(spot.distanceMeters / 80));
+          const photoUrl = streetViewUrl(spot.lat, spot.lng);
           return (
             <button
               key={spot.id}
@@ -48,7 +64,20 @@ export default function RecommendationsList({
               onMouseLeave={() => onFocus?.(null)}
               onClick={() => onFocus?.(spot.id)}
             >
-              <div className="place-thumb" style={{ background: thumbGradient(spot.id) }}>
+              <div
+                className="place-thumb"
+                style={photoUrl ? undefined : { background: thumbGradient(spot.id) }}
+              >
+                {photoUrl && (
+                  <Image
+                    src={photoUrl}
+                    alt={spot.name}
+                    fill
+                    sizes="(max-width: 600px) 100vw, 33vw"
+                    style={{ objectFit: "cover" }}
+                    priority={i === 0}
+                  />
+                )}
                 <span className="rank">{i + 1}</span>
                 <span className="crowd-pill">{spot.price}</span>
                 <span className="place-name-on-thumb">{spot.name}</span>

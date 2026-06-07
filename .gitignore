@@ -3,6 +3,9 @@
 /.pnp
 .pnp.*
 
+# vendored python packages (should not be committed)
+/.pip_packages
+
 # next.js
 /.next/
 /out/

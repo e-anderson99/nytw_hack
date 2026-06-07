@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
+import type { CrowdCell } from "@/types";
+import type { MockSpot } from "@/data/mockSpots";
 
 // Madison Square Garden
 const MSG: [number, number] = [-73.9935, 40.7505];
@@ -19,6 +21,27 @@ interface MapViewProps {
   text?: string;
   /** Short emphasis label, e.g. "CLUTCH", "DAGGER". */
   tag?: string;
+  /** Predictive heat grid for the selected time; rendered as a heatmap layer. */
+  heatCells?: CrowdCell[];
+  /** Recommended spots; the top 3 get numbered pins. */
+  spots?: MockSpot[];
+  /** Currently focused spot id (hover sync with the "In your map" list). */
+  focusedId?: string | null;
+  onFocusSpot?: (id: string | null) => void;
+}
+
+// Build a GeoJSON FeatureCollection of weighted points from the crowd grid.
+function heatFeatureCollection(
+  cells: CrowdCell[],
+): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  return {
+    type: "FeatureCollection",
+    features: cells.map((c) => ({
+      type: "Feature",
+      properties: { intensity: c.intensity },
+      geometry: { type: "Point", coordinates: [c.lng, c.lat] },
+    })),
+  };
 }
 
 // A notable play *in the Knicks' favor* triggers the on-screen flash notification.
@@ -239,6 +262,10 @@ export default function MapView({
   tone = "good",
   text,
   tag,
+  heatCells = [],
+  spots = [],
+  focusedId = null,
+  onFocusSpot,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -248,6 +275,12 @@ export default function MapView({
   // can clear them on unmount — but NOT on every new event, otherwise a fast
   // cadence cancels a pulse's removal before it fires and pulses leak forever.
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  // Latest heat cells, so the map's load handler can seed the source with
+  // whatever has arrived by the time the style is ready.
+  const heatCellsRef = useRef<CrowdCell[]>(heatCells);
+  heatCellsRef.current = heatCells;
+  // Recommendation markers + their elements, for lifecycle + focus toggling.
+  const recMarkersRef = useRef<{ id: string; marker: maplibregl.Marker; el: HTMLElement }[]>([]);
 
   // MSG's position in map-pixel space; keeps the pulse anchored as you pan/zoom.
   const [msgPos, setMsgPos] = useState<{ x: number; y: number } | null>(null);
@@ -283,8 +316,35 @@ export default function MapView({
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
-    // Layer on the neighborhood borders + labels + mask once the style is ready.
+    // Layer on the heat field + neighborhood borders/labels/mask once ready.
     map.on("load", () => {
+      // Heat first, so the neighborhood outlines + labels draw on top of it.
+      map.addSource("heat", {
+        type: "geojson",
+        data: heatFeatureCollection(heatCellsRef.current),
+      });
+      map.addLayer({
+        id: "heat",
+        type: "heatmap",
+        source: "heat",
+        paint: {
+          "heatmap-weight": ["get", "intensity"],
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 2.2],
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 16, 13, 38, 15, 64],
+          "heatmap-opacity": 0.72,
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0, "rgba(0,0,0,0)",
+            0.2, "rgba(0,120,255,0.5)",
+            0.4, "rgba(40,200,140,0.7)",
+            0.6, "rgba(245,200,40,0.85)",
+            0.8, "rgba(243,109,29,0.92)",
+            1, "rgba(214,33,33,1)",
+          ],
+        },
+      });
       addNeighborhoods(map).catch((err) => console.error("neighborhood overlay failed", err));
     });
 
@@ -349,6 +409,51 @@ export default function MapView({
     // Re-fire whenever the moment changes, even if impact/tone repeat.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventKey]);
+
+  // Push new heat data to the source whenever the selected frame changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    const src = map?.getSource("heat") as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(heatFeatureCollection(heatCells));
+    // If the source isn't ready yet, the load handler seeds it from the ref.
+  }, [heatCells]);
+
+  // Numbered pins for the top-3 spots. Rebuilt when the spot set changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    recMarkersRef.current.forEach((m) => m.marker.remove());
+    recMarkersRef.current = [];
+
+    spots.slice(0, 3).forEach((spot, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "rec-pin";
+      el.setAttribute("aria-label", `${i + 1}. ${spot.name}`);
+      el.innerHTML =
+        `<span class="rec-pin-num">${i + 1}</span>` +
+        `<span class="rec-pin-label">${spot.name}</span>`;
+      el.addEventListener("mouseenter", () => onFocusSpot?.(spot.id));
+      el.addEventListener("mouseleave", () => onFocusSpot?.(null));
+      el.addEventListener("click", () => onFocusSpot?.(spot.id));
+      const marker = new maplibregl.Marker({ element: el, anchor: "left" })
+        .setLngLat([spot.lng, spot.lat])
+        .addTo(map);
+      recMarkersRef.current.push({ id: spot.id, marker, el });
+    });
+
+    return () => {
+      recMarkersRef.current.forEach((m) => m.marker.remove());
+      recMarkersRef.current = [];
+    };
+  }, [spots, onFocusSpot]);
+
+  // Toggle the focus highlight without rebuilding markers.
+  useEffect(() => {
+    for (const m of recMarkersRef.current) {
+      m.el.classList.toggle("is-focus", m.id === focusedId);
+    }
+  }, [focusedId]);
 
   return (
     <>
