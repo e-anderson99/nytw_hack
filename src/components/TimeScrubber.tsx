@@ -32,7 +32,7 @@ export default function TimeScrubber({
   const endLabel = clockLabel(frames[frames.length - 1].tFuture);
 
   return (
-    <div className="scrubber glass">
+    <div className="time-scrubber glass">
       <div className="scrubber-head">
         <span className="scrubber-time">
           {isNow ? "Now" : clockLabel(frame.tFuture)}

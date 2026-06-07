@@ -82,21 +82,13 @@ export default function Home() {
             focusedId={focusedId}
             onFocusSpot={setFocusedId}
           />
-          <div className="map-legend">
-            <span className="legend-title">Crowd</span>
-            <div className="legend-bar" />
-            <div className="legend-scale">
-              <span>Quiet</span>
-              <span>Packed</span>
-            </div>
-          </div>
+          <TimeScrubber
+            frames={frames}
+            index={safeFrameIdx}
+            onChange={setFrameIdx}
+          />
         </div>
         <GameScrubber feed={feed} />
-        <TimeScrubber
-          frames={frames}
-          index={safeFrameIdx}
-          onChange={setFrameIdx}
-        />
       </div>
 
       <LiveChat feed={feed} />

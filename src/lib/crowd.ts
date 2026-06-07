@@ -6,6 +6,7 @@ import type { CrowdCell, GameState } from "@/types";
 import { getGameState } from "./sources/nba";
 import { mtaHourIndex } from "./sources/mta";
 import { STATIONS } from "@/data/subway";
+import { VENUES } from "@/data/venues";
 import { currentCrowd, predictedCrowd, driftPhaseFor } from "./score";
 import { historicalBaseline } from "./baselines";
 import { MSG, clamp01, distanceMeters } from "./predict";
@@ -106,9 +107,30 @@ export function predictAt(
   return predictedCrowd(currentNow, baselineFuture, deltaMin, phase);
 }
 
+// Heat hotspots: a grid cell's intensity is a distance-weighted sum (kernel
+// density) of the predicted crowd at the real crowd nodes — MSG plus every
+// venue and station. Hot anchors and dense clusters (the Midtown bars around
+// the Garden) pile up into hotspots; empty blocks stay cool. Tune the sigmas
+// (falloff radius, meters), the MSG epicenter boost, and the overall scale.
+const HEAT_SCALE = 0.62;
+const MSG_SIGMA_M = 450;
+const VENUE_SIGMA_M = 220;
+const STATION_SIGMA_M = 320;
+const MSG_BOOST = 1.3;
+
+interface HeatAnchor {
+  lat: number;
+  lng: number;
+  /** Predicted crowd 0-1 at this node, for the given time. */
+  weight: number;
+  /** Gaussian falloff radius in meters. */
+  sigma: number;
+}
+
 /**
  * Build a square heat-map grid centered on MSG. `half` cells in each direction,
- * spanning ~`spanMeters`. Returns cells with predicted intensity.
+ * spanning ~`spanMeters`. Intensity is a kernel-density field over the crowd
+ * anchors, so it shows spatial hotspots rather than a flat wash.
  */
 export function predictGrid(
   ctx: CrowdContext,
@@ -116,8 +138,29 @@ export function predictGrid(
   spanMeters = 1600,
   tFutureMs: number = ctx.tFutureMs,
 ): CrowdCell[] {
+  // Each real crowd node's predicted crowd at this time, with a falloff radius.
+  const anchors: HeatAnchor[] = [
+    {
+      lat: MSG.lat,
+      lng: MSG.lng,
+      weight: clamp01(predictAt(ctx, "msg", MSG, tFutureMs) * MSG_BOOST),
+      sigma: MSG_SIGMA_M,
+    },
+    ...VENUES.map((v) => ({
+      lat: v.lat,
+      lng: v.lng,
+      weight: predictAt(ctx, v.id, v, tFutureMs),
+      sigma: VENUE_SIGMA_M,
+    })),
+    ...STATIONS.map((s) => ({
+      lat: s.lat,
+      lng: s.lng,
+      weight: predictAt(ctx, s.stationId, s, tFutureMs),
+      sigma: STATION_SIGMA_M,
+    })),
+  ];
+
   const cells: CrowdCell[] = [];
-  // Meters-per-degree at MSG latitude.
   const mPerDegLat = 111_320;
   const mPerDegLng = 111_320 * Math.cos((MSG.lat * Math.PI) / 180);
   const step = spanMeters / half;
@@ -126,12 +169,16 @@ export function predictGrid(
     for (let j = -half; j <= half; j++) {
       const lat = MSG.lat + (i * step) / mPerDegLat;
       const lng = MSG.lng + (j * step) / mPerDegLng;
-      const id = `cell-${i}-${j}`;
+      let sum = 0;
+      for (const a of anchors) {
+        const d = distanceMeters({ lat, lng }, a);
+        sum += a.weight * Math.exp(-(d * d) / (2 * a.sigma * a.sigma));
+      }
       cells.push({
-        id,
+        id: `cell-${i}-${j}`,
         lat,
         lng,
-        intensity: predictAt(ctx, id, { lat, lng }, tFutureMs),
+        intensity: clamp01(sum * HEAT_SCALE),
       });
     }
   }
