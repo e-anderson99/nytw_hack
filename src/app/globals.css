@@ -567,6 +567,7 @@ input[type="range"]::-moz-range-thumb {
 
 .place-thumb .rank {
   position: absolute;
+  z-index: 1;
   top: 8px;
   left: 8px;
   width: 22px;
@@ -582,6 +583,7 @@ input[type="range"]::-moz-range-thumb {
 
 .place-thumb .crowd-pill {
   position: absolute;
+  z-index: 1;
   top: 8px;
   right: 8px;
   font-size: var(--apple-caption-2);
@@ -594,6 +596,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .place-name-on-thumb {
+  position: relative;
+  z-index: 1;
   font-size: var(--apple-caption-1);
   font-weight: var(--apple-semibold);
   line-height: 1.333;
