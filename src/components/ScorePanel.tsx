@@ -27,12 +27,21 @@ export default function ScorePanel({
 }: ScorePanelProps) {
   const { score, leading } = feed;
   const status = statusLabel(feed);
+  const isLive = feed.current.tag !== "FINAL";
 
   return (
     <section className="card glass card--score" aria-label="Live score">
       <div className="score-head">
         <span className="score-league">{league} · {date}</span>
-        <span className="score-status">{status}</span>
+        <span className="score-status">
+          {isLive && (
+            <span className="score-live" aria-label="Live">
+              <span className="score-livedot" />
+              LIVE
+            </span>
+          )}
+          {status}
+        </span>
       </div>
 
       <div className="score-board">
@@ -49,11 +58,18 @@ export default function ScorePanel({
         </div>
 
         <div className="score-points">
-          <span className={`num ${leading === "nyk" ? "is-leading" : leading ? "is-trailing" : ""}`}>
+          {/* key on the value so the element re-mounts and replays score-pop on each change */}
+          <span
+            key={`nyk-${score.nyk}`}
+            className={`num ${leading === "nyk" ? "is-leading" : leading ? "is-trailing" : ""}`}
+          >
             {score.nyk}
           </span>
           <span className="dash">–</span>
-          <span className={`num ${leading === "sas" ? "is-leading" : leading ? "is-trailing" : ""}`}>
+          <span
+            key={`sas-${score.sas}`}
+            className={`num ${leading === "sas" ? "is-leading is-away" : leading ? "is-trailing" : ""}`}
+          >
             {score.sas}
           </span>
         </div>

@@ -3,12 +3,20 @@
 :root {
   --knicks-blue: #0a68d1;
   --knicks-orange: #f48326;
+  /* punchier, more saturated takes used for glows/fills */
+  --knicks-blue-hot: #1e88ff;
+  --knicks-orange-hot: #ff7a1a;
   --spurs: #c4ced4;
 
-  /* design-system glass tokens */
+  /* design-system glass tokens — more solid + saturated than the old frost */
   --glass-bg: rgba(255, 255, 255, 0.19);
   --glass-border: rgba(255, 255, 255, 0.34);
   --glass-inset: inset 0px 4px 16px rgba(0, 0, 0, 0.15);
+
+  /* team-colored glow shadows for "loud but controlled" accents */
+  --orange-glow: 0 0 0 1px rgba(244, 131, 38, 0.55),
+    0 0 22px rgba(244, 131, 38, 0.4);
+  --blue-glow: 0 0 0 1px rgba(30, 136, 255, 0.6), 0 0 22px rgba(30, 136, 255, 0.42);
 
   --text: #ffffff;
   --text-dim: rgba(255, 255, 255, 0.76);
@@ -17,12 +25,17 @@
   --good: #5ff0c0;
   --bad: #ff6b6b;
 
-  --radius-lg: 20px;
-  --radius-md: 12px;
+  /* a touch tighter than the soft Apple radii */
+  --radius-lg: 16px;
+  --radius-md: 11px;
 
-  /* Apple SF Pro system stack */
+  /* Apple SF Pro system stack — body text */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Anton — condensed jumbotron display, headlines + scores only */
+  --font-display-stack: var(--font-display), "Arial Narrow", "Helvetica Neue",
+    sans-serif;
 
   /* Apple Dynamic Type scale */
   --apple-large-title: 34px;
@@ -64,15 +77,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background:
+    radial-gradient(
+      120% 80% at 72% 8%,
+      rgba(255, 122, 26, 0.45),
+      transparent 55%
+    ),
+    radial-gradient(
+      100% 70% at 10% 0%,
+      rgba(30, 136, 255, 0.4),
+      transparent 50%
+    ),
     linear-gradient(
       180deg,
-      #0a68d1 2.12%,
-      rgba(244, 131, 38, 0.5) 24.52%,
-      #000000 61.54%
+      #0a68d1 0%,
+      rgba(244, 131, 38, 0.72) 22%,
+      #050608 58%
     ),
     #000;
   background-attachment: fixed;
-  box-shadow: inset 0 0 42px 34px rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 0 42px 34px rgba(0, 0, 0, 0.22);
   overflow: hidden;
 }
 
@@ -99,8 +122,8 @@ body {
 /* ---------- glass card base ---------- */
 .glass {
   background: var(--glass-bg);
-  border: 0.5px solid var(--glass-border);
-  box-shadow: var(--glass-inset);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inset), 0 12px 40px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(9.2px);
   -webkit-backdrop-filter: blur(9.2px);
   border-radius: var(--radius-lg);
@@ -134,20 +157,25 @@ body {
 
 .card-title {
   margin: 0;
-  font-size: var(--apple-title-1);
-  font-weight: var(--apple-regular);
-  line-height: 1.214; /* 34/28 */
-  letter-spacing: -0.36px;
+  font-family: var(--font-display-stack);
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: 400; /* Anton is heavy by design */
+  line-height: 0.96;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--text);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
 }
 
 .card-eyebrow {
-  font-size: var(--apple-title-3);
-  font-weight: var(--apple-regular);
-  line-height: 1.25; /* 25/20 */
-  letter-spacing: -0.23px;
-  color: var(--text);
-  opacity: 0.92;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--knicks-orange-hot);
+  opacity: 1;
 }
 
 /* ---------- score card — Google score panel layout ---------- */
@@ -173,8 +201,31 @@ body {
 }
 
 .score-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: var(--apple-medium);
   font-variant-numeric: tabular-nums;
+}
+
+/* pulsing LIVE badge next to the clock (hidden once the game is Final) */
+.score-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--bad);
+  text-transform: uppercase;
+}
+.score-livedot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+  animation: livedot 1.8s ease-in-out infinite;
 }
 
 .score-board {
@@ -219,10 +270,12 @@ body {
 }
 
 .team-name {
-  font-size: var(--apple-callout);
-  font-weight: var(--apple-medium);
-  line-height: 1.25;
-  letter-spacing: -0.23px;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.6vw, 22px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: var(--text);
   white-space: nowrap;
 }
@@ -237,29 +290,50 @@ body {
   justify-content: center;
   gap: clamp(8px, 1.2vw, 22px);
   height: clamp(56px, 5vw, 84px);
-  font-size: clamp(32px, 3.6vw, 56px);
+  font-family: var(--font-display-stack);
+  font-size: clamp(44px, 4.8vw, 76px);
   pointer-events: none;
   z-index: 0;
-  font-weight: var(--apple-medium);
+  font-weight: 400;
   line-height: 1;
-  letter-spacing: -0.5px;
+  letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
 }
 
 .score-points .num {
   min-width: 2.5ch;
   text-align: center;
-  transition: color 0.3s, transform 0.3s;
+  transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
 }
 .score-points .num.is-leading {
-  color: #fff;
+  color: var(--knicks-orange-hot);
+  text-shadow: 0 0 22px rgba(255, 122, 26, 0.55);
+  animation: score-pop 0.45s cubic-bezier(0.18, 0.9, 0.28, 1.4);
+}
+/* away (Spurs) leading reads in the rival's ice-blue, not Knicks orange */
+.score-points .num.is-leading.is-away {
+  color: var(--knicks-blue-hot);
+  text-shadow: 0 0 22px rgba(30, 136, 255, 0.55);
 }
 .score-points .num.is-trailing {
   color: var(--text-faint);
 }
 .score-points .dash {
   color: var(--text-dim);
-  font-weight: var(--apple-regular);
+  font-weight: 400;
+}
+
+/* one-shot punch when a score updates / lead changes */
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ---------- events card ---------- */
@@ -334,17 +408,28 @@ body {
   -webkit-backdrop-filter: blur(5.4px);
   border-radius: var(--radius-md);
   transition:
-    border-color 0.35s ease,
-    background 0.35s ease;
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .event-chip.is-new {
-  border-color: rgba(95, 240, 192, 0.55);
-  background: rgba(95, 240, 192, 0.08);
+  border-color: rgba(95, 240, 192, 0.7);
+  background: rgba(95, 240, 192, 0.12);
+  box-shadow: 0 0 16px rgba(95, 240, 192, 0.25);
+  animation: chip-in 0.3s cubic-bezier(0.18, 0.9, 0.28, 1.2);
 }
 .event-chip.tone-bad.is-new {
-  border-color: rgba(255, 107, 107, 0.55);
-  background: rgba(255, 107, 107, 0.08);
+  border-color: rgba(255, 107, 107, 0.7);
+  background: rgba(255, 107, 107, 0.12);
+  box-shadow: 0 0 16px rgba(255, 107, 107, 0.25);
+}
+
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
 }
 
 .event-chip .label {
@@ -364,11 +449,13 @@ body {
 }
 
 .event-chip .tag {
-  font-size: var(--apple-caption-2);
-  font-weight: var(--apple-semibold);
-  letter-spacing: 0.06px;
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-family: var(--font-display-stack);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.16);
 }
 .event-chip.tone-good .tag {
@@ -398,11 +485,13 @@ body {
 }
 
 .prefs-eyebrow {
-  font-size: var(--apple-subhead);
-  font-weight: var(--apple-regular);
-  line-height: 1.333;
-  letter-spacing: -0.24px;
-  color: #fff;
+  font-family: var(--font-display-stack);
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--knicks-orange-hot);
   flex: none;
 }
 
@@ -456,9 +545,13 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 5px;
+  height: 6px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    90deg,
+    rgba(30, 136, 255, 0.55),
+    rgba(255, 122, 26, 0.55)
+  );
   outline: none;
   cursor: pointer;
 }
@@ -468,12 +561,17 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  border: 3px solid var(--knicks-orange);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 4px solid var(--knicks-orange-hot);
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.25), 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.32), 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 input[type="range"]::-moz-range-thumb {
   width: 16px;
@@ -492,15 +590,16 @@ input[type="range"]::-moz-range-thumb {
 .chip {
   padding: 6px 14px;
   border-radius: 99px;
-  border: 0.5px solid var(--glass-border);
+  border: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-dim);
   font-size: var(--apple-caption-1);
-  font-weight: var(--apple-medium);
+  font-weight: var(--apple-semibold);
   line-height: 1.333;
-  letter-spacing: 0;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.12s ease;
 }
 .chip--sm {
   padding: 4px 11px;
@@ -510,12 +609,19 @@ input[type="range"]::-moz-range-thumb {
 }
 .chip:hover {
   color: #fff;
+  border-color: rgba(255, 122, 26, 0.6);
+  transform: translateY(-1px);
 }
 .chip.is-on {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(
+    135deg,
+    var(--knicks-orange-hot),
+    var(--knicks-orange)
+  );
   border-color: transparent;
-  color: #11244a;
-  font-weight: var(--apple-semibold);
+  color: #1a0f02;
+  font-weight: var(--apple-bold);
+  box-shadow: var(--orange-glow);
 }
 
 /* ---------- places card ---------- */
@@ -550,7 +656,8 @@ input[type="range"]::-moz-range-thumb {
 .place-card:hover,
 .place-card.is-focus {
   border-color: var(--knicks-orange);
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: var(--orange-glow);
 }
 
 .place-thumb {
@@ -848,13 +955,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .score-flash-tag {
-  font-size: clamp(28px, 4vw, 52px);
-  font-weight: 900;
-  letter-spacing: 2px;
-  line-height: 1;
-  color: var(--knicks-orange, #f48326);
+  font-family: var(--font-display-stack);
+  font-size: clamp(40px, 6vw, 84px);
+  font-weight: 400;
+  letter-spacing: 3px;
+  line-height: 0.9;
+  color: var(--knicks-orange-hot);
   text-transform: uppercase;
-  text-shadow: 0 0 24px rgba(255, 122, 26, 0.8);
+  text-shadow: 0 0 28px rgba(255, 122, 26, 0.9), 0 0 4px rgba(255, 255, 255, 0.5);
 }
 
 .score-flash-text {
@@ -871,6 +979,8 @@ input[type="range"]::-moz-range-thumb {
   .score-flash,
   .score-flash-card { animation-duration: 2s; }
   .score-flash-card { animation-timing-function: ease-out; }
+  .score-points .num.is-leading,
+  .event-chip.is-new { animation: none; }
 }
 
 /* MSG pin sitting on the still map (roughly midtown-west). */
@@ -1369,18 +1479,25 @@ input[type="range"]::-moz-range-thumb {
 }
 .chat-send {
   flex: none;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 99px;
   border: none;
-  background: var(--knicks-orange);
-  color: #11244a;
-  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    var(--knicks-orange-hot),
+    var(--knicks-orange)
+  );
+  color: #1a0f02;
+  font-weight: 800;
   font-size: 12.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: opacity 0.12s, transform 0.12s;
+  transition: opacity 0.12s, transform 0.12s, box-shadow 0.12s;
 }
 .chat-send:hover:not(:disabled) {
   transform: translateY(-1px);
+  box-shadow: var(--orange-glow);
 }
 .chat-send:disabled {
   opacity: 0.45;
