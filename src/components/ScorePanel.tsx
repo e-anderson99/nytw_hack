@@ -37,16 +37,14 @@ export default function ScorePanel({
 
       <div className="score-board">
         <div className="score-team home">
-          <div className="team-logo">
-            <Image
-              src="/knicks-logo.png"
-              alt={`${HOME.fullName} logo`}
-              fill
-              sizes="96px"
-              className="team-logo-img"
-              priority
-            />
-          </div>
+          <Image
+            src="/knicks-logo.png"
+            alt={`${HOME.fullName} logo`}
+            width={84}
+            height={84}
+            className="team-logo-img"
+            priority
+          />
           <span className="team-name">{HOME.fullName}</span>
         </div>
 
@@ -61,16 +59,14 @@ export default function ScorePanel({
         </div>
 
         <div className="score-team away">
-          <div className="team-logo">
-            <Image
-              src="/spurs-logo.png"
-              alt={`${AWAY.fullName} logo`}
-              fill
-              sizes="96px"
-              className="team-logo-img"
-              priority
-            />
-          </div>
+          <Image
+            src="/spurs-logo.png"
+            alt={`${AWAY.fullName} logo`}
+            width={84}
+            height={84}
+            className="team-logo-img"
+            priority
+          />
           <span className="team-name">{AWAY.fullName}</span>
         </div>
       </div>

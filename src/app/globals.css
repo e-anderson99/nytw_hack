@@ -92,6 +92,7 @@ body {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: minmax(0, 274fr) minmax(0, 365fr) minmax(0, 365fr);
   gap: clamp(16px, 1.6vw, 30px);
+  height: 100%;
   min-height: 0;
 }
 
@@ -202,14 +203,10 @@ body {
   text-align: right;
 }
 
-.team-logo {
-  position: relative;
+.team-logo-img {
   width: clamp(56px, 5vw, 84px);
   height: clamp(56px, 5vw, 84px);
   flex: none;
-}
-
-.team-logo-img {
   object-fit: contain;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
