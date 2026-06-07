@@ -21,8 +21,8 @@ interface MapViewProps {
   tag?: string;
 }
 
-// A huge play *in the Knicks' favor* triggers the on-screen flash notification.
-const FLASH_THRESHOLD = 8;
+// A notable play *in the Knicks' favor* triggers the on-screen flash notification.
+const FLASH_THRESHOLD = 4;
 
 const GOOD_COLOR = "255, 122, 26"; // Knicks orange
 const BAD_COLOR = "56, 160, 255"; // Spurs ice-blue
@@ -52,7 +52,7 @@ function buildPulse(id: number, impact: number, tone: string): Pulse {
     rings: 1 + Math.round(norm * 4), // 1 → 5 rings
     scale: 1.6 + norm * 4.4, // reach: covers MSG block → blankets the metro
     dur: 1.3 + norm * 1.6, // 1.3s → 2.9s
-    mega: mag >= 8,
+    mega: mag >= 6,
   };
 }
 
@@ -169,7 +169,10 @@ async function addNeighborhoods(map: maplibregl.Map) {
     boroRaw.features.filter((f) => !EXCLUDED_BOROS.has(f.properties.boro ?? "")),
   );
   map.fitBounds(nyc, { padding: 12, animate: false });
-  map.setMinZoom(map.getZoom() - 0.05); // can't zoom out past the framed city
+  const zMin = map.getZoom(); // the framed, most-zoomed-out view
+  const zMax = 15;
+  const zMid = zMin + (zMax - zMin) * 0.5;
+  map.setMinZoom(zMin - 0.05); // can't zoom out past the framed city
   const pad = 0.04; // small lng/lat cushion so panning doesn't hit a hard wall
   map.setMaxBounds([
     [nyc.getWest() - pad, nyc.getSouth() - pad],
@@ -189,7 +192,9 @@ async function addNeighborhoods(map: maplibregl.Map) {
     paint: { "fill-color": "#000000", "fill-opacity": 1 },
   });
 
-  // White borders between neighborhoods, drawn on top of the mask.
+  // White borders between neighborhoods, drawn on top of the mask. The mesh is
+  // nearly invisible at the framed-out view and fades in as you zoom, so the
+  // whole-city view isn't a cluttered net of every NTA boundary.
   map.addLayer({
     id: "hood-outline",
     type: "line",
@@ -197,12 +202,14 @@ async function addNeighborhoods(map: maplibregl.Map) {
     layout: { "line-join": "round" },
     paint: {
       "line-color": "#ffffff",
-      "line-opacity": 0.7,
+      "line-opacity": ["interpolate", ["linear"], ["zoom"], zMin, 0.04, zMid, 0.38, zMax, 0.7],
       "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.4, 13, 1, 15, 1.8],
     },
   });
 
   // Neighborhood names — residential NTAs only (skip parks/cemeteries/airports).
+  // Hidden at the framed-out view, fading in (and growing) as you zoom toward
+  // street level, where the full label detail is the maximum.
   map.addLayer({
     id: "hood-labels",
     type: "symbol",
@@ -219,7 +226,7 @@ async function addNeighborhoods(map: maplibregl.Map) {
     },
     paint: {
       "text-color": "#ffffff",
-      "text-opacity": 0.85,
+      "text-opacity": ["interpolate", ["linear"], ["zoom"], zMin + 0.2, 0, zMid, 0.5, zMax, 0.85],
       "text-halo-color": "#000000",
       "text-halo-width": 1.4,
     },
@@ -237,6 +244,10 @@ export default function MapView({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const pulseIdRef = useRef(0);
   const firstEventRef = useRef(true);
+  // Per-event timers (pulse removal, shake reset, flash dismiss). Tracked so we
+  // can clear them on unmount — but NOT on every new event, otherwise a fast
+  // cadence cancels a pulse's removal before it fires and pulses leak forever.
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   // MSG's position in map-pixel space; keeps the pulse anchored as you pan/zoom.
   const [msgPos, setMsgPos] = useState<{ x: number; y: number } | null>(null);
@@ -292,6 +303,8 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
       maplibregl.removeProtocol("pmtiles");
+      timersRef.current.forEach((t) => clearTimeout(t));
+      timersRef.current.clear();
     };
   }, []);
 
@@ -302,37 +315,37 @@ export default function MapView({
       firstEventRef.current = false;
       return;
     }
-    if (impact === 0) return;
+    // Only positive Knicks moments get a burst/notification — never Spurs plays.
+    if (impact <= 0) return;
 
     const pulse = buildPulse(++pulseIdRef.current, impact, tone);
     setPulses((p) => [...p, pulse]);
 
-    const lifetime = pulse.dur * 1000 + 400;
-    const cleanup = setTimeout(() => {
-      setPulses((p) => p.filter((x) => x.id !== pulse.id));
-    }, lifetime);
+    // Schedule a one-shot timer that self-removes from the tracking set when it
+    // fires. We do NOT cancel these on the next event — each pulse/flash/shake
+    // must run its full course no matter how fast moments tick by.
+    const track = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+        timersRef.current.delete(t);
+        fn();
+      }, ms);
+      timersRef.current.add(t);
+    };
 
-    let shakeTimer: ReturnType<typeof setTimeout> | undefined;
+    const lifetime = pulse.dur * 1000 + 400;
+    track(() => setPulses((p) => p.filter((x) => x.id !== pulse.id)), lifetime);
+
     if (pulse.mega) {
       setShaking(true);
-      shakeTimer = setTimeout(() => setShaking(false), 700);
+      track(() => setShaking(false), 700);
     }
 
     // Huge play in the Knicks' favor → flash a notification of what happened.
-    let flashTimer: ReturnType<typeof setTimeout> | undefined;
     if (impact >= FLASH_THRESHOLD) {
       const flashId = pulse.id;
       setFlash({ id: flashId, tag, text });
-      flashTimer = setTimeout(() => {
-        setFlash((f) => (f && f.id === flashId ? null : f));
-      }, 3200);
+      track(() => setFlash((f) => (f && f.id === flashId ? null : f)), 3200);
     }
-
-    return () => {
-      clearTimeout(cleanup);
-      if (shakeTimer) clearTimeout(shakeTimer);
-      if (flashTimer) clearTimeout(flashTimer);
-    };
     // Re-fire whenever the moment changes, even if impact/tone repeat.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventKey]);

@@ -28,7 +28,7 @@ function parseScore(score: string): { nyk: number; sas: number } {
   return { nyk: nyk || 0, sas: sas || 0 };
 }
 
-export function useGameFeed(tickSeconds = 3.5): GameFeedState {
+export function useGameFeed(tickSeconds = 0.7): GameFeedState {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
 

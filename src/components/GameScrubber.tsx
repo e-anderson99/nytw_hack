@@ -5,8 +5,9 @@
 // any moment in the game; auto-advance pauses while you drag and resumes after
 // if it was playing (mirrors a video scrubber).
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { GameFeedState } from "@/lib/useGameFeed";
+import { GAME_FEED } from "@/data/gameFeed";
 
 interface GameScrubberProps {
   feed: GameFeedState;
@@ -15,22 +16,33 @@ interface GameScrubberProps {
 export default function GameScrubber({ feed }: GameScrubberProps) {
   const { idx, total, current, playing, seek, setPlaying } = feed;
   const wasPlaying = useRef(playing);
+  // While the user drags, we hold the position locally and DON'T commit it to
+  // the feed — so the map/score/events don't re-render or refetch on every
+  // intermediate frame. The drag value is committed once, on release.
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const max = Math.max(0, total - 1);
-  const pct = max === 0 ? 0 : (idx / max) * 100;
+  const displayIdx = dragIdx ?? idx;
+  const pct = max === 0 ? 0 : (displayIdx / max) * 100;
 
   const beginScrub = () => {
     wasPlaying.current = playing;
     setPlaying(false);
+    setDragIdx(idx);
   };
   const endScrub = () => {
+    if (dragIdx !== null) {
+      seek(dragIdx);
+      setDragIdx(null);
+    }
     if (wasPlaying.current) setPlaying(true);
   };
 
+  const displayMoment = dragIdx === null ? current : GAME_FEED[displayIdx];
   const label =
-    current.tag === "FINAL"
+    displayMoment.tag === "FINAL"
       ? "FINAL"
-      : `Q${current.period} · ${current.clock}`;
+      : `Q${displayMoment.period} · ${displayMoment.clock}`;
 
   return (
     <div className="scrubber" aria-label="Game timeline">
@@ -50,9 +62,9 @@ export default function GameScrubber({ feed }: GameScrubberProps) {
           min={0}
           max={max}
           step={1}
-          value={idx}
+          value={displayIdx}
           style={{ ["--pct" as string]: `${pct}%` }}
-          onChange={(e) => seek(Number(e.target.value))}
+          onChange={(e) => setDragIdx(Number(e.target.value))}
           onMouseDown={beginScrub}
           onTouchStart={beginScrub}
           onMouseUp={endScrub}

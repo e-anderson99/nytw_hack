@@ -13,8 +13,10 @@
   "dependencies": {
     "maplibre-gl": "^5.24.0",
     "next": "16.2.7",
+    "pmtiles": "^4.4.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-icons": "^5.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

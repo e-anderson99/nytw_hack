@@ -626,7 +626,10 @@ input[type="range"]::-moz-range-thumb {
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: #000;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  /* Match the glass cards: translucent white hairline border + soft inset,
+     stacked on top of the panel's existing drop shadow. */
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-inset), 0 24px 60px rgba(0, 0, 0, 0.4);
   min-height: 0;
 }
 
