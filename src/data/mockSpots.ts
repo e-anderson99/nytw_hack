@@ -1,0 +1,37 @@
+// Mock watch-spots for the "In your map" bento card. Self-contained demo data
+// (no backend) — each spot carries a crowd level and average crowd age so the
+// preferences sliders can filter/sort them client-side.
+
+import type { PriceTier } from "@/types";
+
+export interface MockSpot {
+  id: string;
+  name: string;
+  /** Normalized crowd level, 0 (quiet) → 1 (packed). */
+  crowd: number;
+  /** Average age of the crowd, for the social/age filter. */
+  avgAge: number;
+  price: PriceTier;
+  /** Walking distance from MSG, in meters. */
+  distanceMeters: number;
+  /** People from your cohort currently there (mock social signal). */
+  friendsHere: number;
+  vibe: string;
+}
+
+export const MOCK_SPOTS: MockSpot[] = [
+  { id: "stout", name: "Stout NYC", crowd: 0.82, avgAge: 26, price: "$$", distanceMeters: 240, friendsHere: 6, vibe: "sports bar" },
+  { id: "blarney", name: "Blarney Rock Pub", crowd: 0.45, avgAge: 31, price: "$", distanceMeters: 300, friendsHere: 2, vibe: "dive" },
+  { id: "legends", name: "Legends NYC", crowd: 0.71, avgAge: 24, price: "$$", distanceMeters: 520, friendsHere: 5, vibe: "sports bar" },
+  { id: "mustang", name: "Mustang Harry's", crowd: 0.58, avgAge: 28, price: "$$", distanceMeters: 410, friendsHere: 3, vibe: "pub" },
+  { id: "smithfield", name: "Smithfield Hall", crowd: 0.9, avgAge: 23, price: "$$", distanceMeters: 880, friendsHere: 8, vibe: "sports bar" },
+  { id: "ginger", name: "The Ginger Man", crowd: 0.33, avgAge: 34, price: "$$$", distanceMeters: 980, friendsHere: 1, vibe: "beer bar" },
+  { id: "pony", name: "The Pony Bar", crowd: 0.27, avgAge: 29, price: "$", distanceMeters: 1500, friendsHere: 2, vibe: "dive" },
+  { id: "social", name: "Social Bar & Lounge", crowd: 0.64, avgAge: 27, price: "$$", distanceMeters: 1700, friendsHere: 4, vibe: "lounge" },
+];
+
+export function crowdLabel(crowd: number): string {
+  if (crowd < 0.34) return "Quiet";
+  if (crowd < 0.67) return "Buzzing";
+  return "Packed";
+}

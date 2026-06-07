@@ -1,65 +1,98 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Image from "next/image";
+import type { CrowdFilters } from "@/types";
+import { useGameFeed } from "@/lib/useGameFeed";
+import ScorePanel from "@/components/ScorePanel";
+import EventsCard from "@/components/EventsCard";
+import FilterPanel, { type FriendsPrefs } from "@/components/FilterPanel";
+import RecommendationsList from "@/components/RecommendationsList";
+import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
+
+const DEFAULT_FILTERS: CrowdFilters = {
+  maxCrowd: 0.7,
+  prices: [],
+  maxWalkMeters: 1500,
+  vibes: [],
+};
+
+const DEFAULT_FRIENDS: FriendsPrefs = {
+  enabled: false,
+  school: "",
+  age: 26,
+};
+
+// Mock ranking: respect the filters, then favor quiet + close + on-age spots.
+function rankSpots(filters: CrowdFilters, friends: FriendsPrefs): MockSpot[] {
+  return MOCK_SPOTS.filter((s) => {
+    if (s.crowd > filters.maxCrowd + 0.05) return false;
+    if (s.distanceMeters > filters.maxWalkMeters) return false;
+    if (filters.prices.length && !filters.prices.includes(s.price)) return false;
+    return true;
+  })
+    .map((s) => {
+      const quiet = 1 - s.crowd;
+      const close = 1 - Math.min(1, s.distanceMeters / filters.maxWalkMeters);
+      const ageFit = 1 - Math.min(1, Math.abs(s.avgAge - friends.age) / 12);
+      const social = friends.enabled ? Math.min(1, s.friendsHere / 8) : 0;
+      const score = 0.4 * quiet + 0.25 * close + 0.2 * ageFit + 0.15 * social;
+      return { s, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ s }) => s);
+}
 
 export default function Home() {
+  const feed = useGameFeed();
+
+  const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
+  const [friends, setFriends] = useState<FriendsPrefs>(DEFAULT_FRIENDS);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+
+  const spots = useMemo(() => rankSpots(filters, friends), [filters, friends]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="stage">
+      <div className="bento">
+        <ScorePanel feed={feed} />
+        <EventsCard feed={feed} />
+        <FilterPanel
+          filters={filters}
+          onChange={setFilters}
+          friends={friends}
+          onFriendsChange={setFriends}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <RecommendationsList
+          spots={spots}
+          showFriends={friends.enabled}
+          focusedId={focusedId}
+          onFocus={setFocusedId}
+        />
+      </div>
+
+      <div className="map-wrap">
+        <Image
+          src="/nyc-map.png"
+          alt="Map of New York City around Madison Square Garden"
+          fill
+          priority
+          sizes="50vw"
+          className="map-image"
+        />
+        <div className="map-pin" aria-hidden>
+          <span className="map-pin-dot" />
+          <span className="map-pin-label">MSG</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="map-legend">
+          <span className="legend-title">Crowd</span>
+          <div className="legend-bar" />
+          <div className="legend-scale">
+            <span>Quiet</span>
+            <span>Packed</span>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
