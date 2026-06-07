@@ -546,6 +546,59 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
+/* Numbered recommendation pins on the still map, synced with "In your map". */
+.rec-pin {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.rec-pin-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1fae7a;
+  border: 3px solid #fff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 0 0 4px rgba(31, 174, 122, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.rec-pin-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1b2330;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.rec-pin:hover .rec-pin-label,
+.rec-pin.is-focus .rec-pin-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+.rec-pin:hover .rec-pin-num,
+.rec-pin.is-focus .rec-pin-num {
+  transform: scale(1.18);
+  background: var(--knicks-orange);
+  box-shadow: 0 0 0 5px rgba(244, 131, 38, 0.35), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 .map-legend {
   position: absolute;
   left: 14px;

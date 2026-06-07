@@ -55,8 +55,12 @@ export function scoreHeatMultiplier(
  *                       game.gameLengthMin, game.status === "live")
  */
 export function impactScaler(game: GameState): number {
-  void game; // referenced so the param survives until the real impl lands
-  return 1.0;
+  return scoreHeatMultiplier(
+    game.scoreDiff,
+    game.clockMinRemaining,
+    game.gameLengthMin,
+    game.status === "live",
+  );
 }
 
 /**

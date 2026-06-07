@@ -5,8 +5,9 @@ import { STATIONS } from "@/data/subway";
 import { buildContext, predictAt } from "@/lib/crowd";
 import { MSG, distanceMeters } from "@/lib/predict";
 
-// GET /api/recommend?tNow=&tFuture=&gameId=&maxCrowd=&prices=&maxWalkMeters=&vibes=
-// Ranks venues against the user's filters and attaches a less-crowded station.
+// GET /api/recommend?tNow=&tFuture=&gameId=&maxCrowd=&prices=&maxWalkMeters=&vibes=&limit=
+// Ranks venues against the user's filters and returns the top `limit` (default
+// 3), each with lat/lng for map pins and a less-crowded station to exit by.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const ctx = await buildContext(searchParams);
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
   const maxWalkMeters = numParam(searchParams.get("maxWalkMeters"), 1500);
   const prices = listParam(searchParams.get("prices")) as PriceTier[];
   const vibes = listParam(searchParams.get("vibes"));
+  const limit = Math.max(1, numParam(searchParams.get("limit"), 3));
 
   // Predicted congestion per station once, for exit suggestions.
   const stationStates: SubwayState[] = STATIONS.map((s) => {
@@ -47,7 +49,8 @@ export async function GET(req: NextRequest) {
         reason: reasonFor(venue, dist, subway),
       };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
 
   return NextResponse.json({
     gameState: ctx.gameState,
