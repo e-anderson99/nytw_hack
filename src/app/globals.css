@@ -624,7 +624,7 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #e8eef2;
+  background: #000;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   min-height: 0;
 }
@@ -632,6 +632,233 @@ input[type="range"]::-moz-range-thumb {
 .map-image {
   object-fit: cover;
   object-position: center;
+}
+
+/* The interactive MapLibre canvas fills the whole map panel. */
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shockwave that radiates from MSG on every scoring play. The size/reach/ring
+   count scale with the event's swing impact (data/game_2_weighted_score.csv).
+   `multiply` blending tints only the gray roads (black stays black), so the
+   energy reads as ripping outward *through the streets* and fading with
+   distance. Color: Knicks orange for good plays, Spurs ice-blue for bad. */
+.pulse-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  overflow: hidden;
+}
+
+/* A second, screen-blended layer for the bright core / mega bloom so it glows
+   (lightens) on top of the road tint rather than darkening it. */
+.bloom-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  overflow: hidden;
+}
+
+/* Expanding ring (annulus) — a wavefront sweeping out along the grid. */
+.score-ring {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  margin: -300px 0 0 -300px; /* center the box on MSG */
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 0 33%,
+    rgba(var(--ring-color), 0.95) 44%,
+    rgba(var(--ring-color), 0.55) 50%,
+    transparent 64%
+  );
+  transform: scale(0.05);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: ring-travel var(--ring-dur, 1.4s)
+    cubic-bezier(0.12, 0.7, 0.25, 1) var(--ring-delay, 0s) forwards;
+}
+
+@keyframes ring-travel {
+  0% {
+    transform: scale(0.05);
+    opacity: 0;
+  }
+  9% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(var(--ring-scale, 2));
+    opacity: 0;
+  }
+}
+
+/* Bright flash core at MSG. */
+.score-core {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  margin: -190px 0 0 -190px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--ring-color), 0.9) 0%,
+    rgba(var(--ring-color), 0) 60%
+  );
+  transform: scale(0.1);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: core-pop calc(var(--ring-dur, 1.4s) * 0.6) ease-out forwards;
+}
+
+@keyframes core-pop {
+  0% {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+/* Clutch plays: a huge white-hot bloom that washes the whole map. */
+.score-core.is-mega {
+  width: 560px;
+  height: 560px;
+  margin: -280px 0 0 -280px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(var(--ring-color), 0.85) 28%,
+    rgba(var(--ring-color), 0) 66%
+  );
+  animation: core-mega calc(var(--ring-dur, 2s) * 0.75) ease-out forwards;
+}
+
+@keyframes core-mega {
+  0% {
+    transform: scale(0.1);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+/* Brief camera shake on clutch (mega) plays. */
+.map-canvas.is-shaking {
+  animation: map-shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes map-shake {
+  10% { transform: translate(-5px, 3px); }
+  20% { transform: translate(6px, -4px); }
+  30% { transform: translate(-8px, 2px); }
+  40% { transform: translate(6px, 4px); }
+  50% { transform: translate(-4px, -3px); }
+  60% { transform: translate(7px, 3px); }
+  70% { transform: translate(-6px, -4px); }
+  80% { transform: translate(4px, 3px); }
+  90% { transform: translate(-3px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Full-screen flash notification for huge Knicks-favored plays — punches in,
+   holds, then fades. Covers the map with a quick orange wash + a headline card
+   announcing what just happened. */
+.score-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 122, 26, 0.42),
+    rgba(255, 122, 26, 0.12) 55%,
+    transparent 80%
+  );
+  animation: flash-bg 3.2s ease-out forwards;
+}
+
+@keyframes flash-bg {
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.score-flash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 40px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(8, 8, 10, 0.72);
+  border: 1.5px solid rgba(255, 122, 26, 0.85);
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.18),
+    0 0 60px rgba(255, 122, 26, 0.55), 0 24px 60px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  max-width: 78%;
+  animation: flash-card 3.2s cubic-bezier(0.18, 0.9, 0.28, 1.2) forwards;
+}
+
+@keyframes flash-card {
+  0% { transform: scale(0.5) translateY(14px); opacity: 0; }
+  9% { transform: scale(1.08); opacity: 1; }
+  16% { transform: scale(1); }
+  72% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.04); opacity: 0; }
+}
+
+.score-flash-tag {
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: var(--knicks-orange, #f48326);
+  text-transform: uppercase;
+  text-shadow: 0 0 24px rgba(255, 122, 26, 0.8);
+}
+
+.score-flash-text {
+  font-size: clamp(15px, 1.5vw, 21px);
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-ring,
+  .score-core { animation-duration: 0.7s; }
+  .map-canvas.is-shaking { animation: none; }
+  .score-flash,
+  .score-flash-card { animation-duration: 2s; }
+  .score-flash-card { animation-timing-function: ease-out; }
 }
 
 /* MSG pin sitting on the still map (roughly midtown-west). */
