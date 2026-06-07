@@ -77,25 +77,33 @@ export function predictAt(
   ctx: CrowdContext,
   locationId: string,
   point: { lat: number; lng: number },
+  // Optional time override so one fetched context can be evaluated at many
+  // future timestamps (e.g. the timeline series). Defaults to the single
+  // tFuture baked into the context, so existing callers are unchanged.
+  tFutureMs: number = ctx.tFutureMs,
 ): number {
   const mtaIdx = ctx.stationIndex[nearestStationId(point)] ?? 0.5;
   const currentNow = clamp01(currentCrowd(mtaIdx, ctx.gameState));
 
-  const minutesRelToEndFuture = (ctx.tFutureMs - ctx.endMs) / 60_000;
-  const dowFuture = new Date(ctx.tFutureMs).getDay();
+  // Same formula as buildContext, so the default path equals ctx.deltaMin.
+  const deltaMin = Math.max(0, (tFutureMs - ctx.tNowMs) / 60_000);
+  const minutesRelToEndFuture = (tFutureMs - ctx.endMs) / 60_000;
+  const dowFuture = new Date(tFutureMs).getDay();
   const baselineFuture = historicalBaseline(
     locationId,
     minutesRelToEndFuture,
     dowFuture,
   );
 
+  // Drift phase is intentionally derived from the CURRENT game state/timing,
+  // not the future time — it reflects where we are in the game now.
   const minutesSinceEndNow = (ctx.tNowMs - ctx.endMs) / 60_000;
   const phase = driftPhaseFor(
     ctx.gameState.status,
     minutesSinceEndNow >= 0 ? minutesSinceEndNow : null,
   );
 
-  return predictedCrowd(currentNow, baselineFuture, ctx.deltaMin, phase);
+  return predictedCrowd(currentNow, baselineFuture, deltaMin, phase);
 }
 
 /**
@@ -106,6 +114,7 @@ export function predictGrid(
   ctx: CrowdContext,
   half = 6,
   spanMeters = 1600,
+  tFutureMs: number = ctx.tFutureMs,
 ): CrowdCell[] {
   const cells: CrowdCell[] = [];
   // Meters-per-degree at MSG latitude.
@@ -118,7 +127,12 @@ export function predictGrid(
       const lat = MSG.lat + (i * step) / mPerDegLat;
       const lng = MSG.lng + (j * step) / mPerDegLng;
       const id = `cell-${i}-${j}`;
-      cells.push({ id, lat, lng, intensity: predictAt(ctx, id, { lat, lng }) });
+      cells.push({
+        id,
+        lat,
+        lng,
+        intensity: predictAt(ctx, id, { lat, lng }, tFutureMs),
+      });
     }
   }
   return cells;

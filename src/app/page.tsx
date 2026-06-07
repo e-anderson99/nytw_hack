@@ -1,18 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import type { CrowdFilters } from "@/types";
 import { useGameFeed } from "@/lib/useGameFeed";
+import { useHeatTimeline } from "@/lib/useHeatTimeline";
+import { projectToMap } from "@/lib/mapProjection";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
 import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
-import LiveChat from "@/components/LiveChat";
+import HeatLayer from "@/components/HeatLayer";
+import TimeScrubber from "@/components/TimeScrubber";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
-
-// MapLibre needs the browser; load the custom map view client-side only.
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 const DEFAULT_FILTERS: CrowdFilters = {
   maxCrowd: 0.7,
@@ -47,6 +47,13 @@ export default function Home() {
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
+  // Heat timeline (now -> 2am); the scrubber picks which frame to render.
+  const heat = useHeatTimeline({ stepMin: 2 });
+  const frames = heat.data?.frames ?? [];
+  const [frameIdx, setFrameIdx] = useState(0);
+  const safeFrameIdx = frames.length ? Math.min(frameIdx, frames.length - 1) : 0;
+  const heatCells = frames[safeFrameIdx]?.cells ?? [];
+
   const spots = useMemo(() => rankSpots(filters), [filters]);
 
   return (
@@ -63,13 +70,43 @@ export default function Home() {
       </div>
 
       <div className="map-wrap">
-        <MapView
-          eventKey={feed.idx}
-          impact={feed.current.impact}
-          tone={feed.current.tone}
-          text={feed.current.text}
-          tag={feed.current.tag}
+        <Image
+          src="/nyc-map.png"
+          alt="Map of New York City around Madison Square Garden"
+          fill
+          priority
+          sizes="50vw"
+          className="map-image"
         />
+
+        {/* Predictive heat field for the selected time. */}
+        {heatCells.length > 0 && <HeatLayer cells={heatCells} />}
+
+        <div className="map-pin" aria-hidden>
+          <span className="map-pin-dot" />
+          <span className="map-pin-label">MSG</span>
+        </div>
+
+        {/* Numbered recommendation pins — top 3, synced with the "In your map" list. */}
+        {spots.slice(0, 3).map((spot, i) => {
+          const pos = projectToMap(spot.lat, spot.lng);
+          return (
+            <button
+              key={spot.id}
+              type="button"
+              className={`rec-pin ${spot.id === focusedId ? "is-focus" : ""}`}
+              style={{ left: `${pos.left}%`, top: `${pos.top}%` }}
+              onMouseEnter={() => setFocusedId(spot.id)}
+              onMouseLeave={() => setFocusedId(null)}
+              onClick={() => setFocusedId(spot.id)}
+              aria-label={`${i + 1}. ${spot.name}`}
+            >
+              <span className="rec-pin-num">{i + 1}</span>
+              <span className="rec-pin-label">{spot.name}</span>
+            </button>
+          );
+        })}
+
         <div className="map-legend">
           <span className="legend-title">Crowd</span>
           <div className="legend-bar" />
@@ -78,9 +115,13 @@ export default function Home() {
             <span>Packed</span>
           </div>
         </div>
-      </div>
 
-      <LiveChat feed={feed} />
+        <TimeScrubber
+          frames={frames}
+          index={safeFrameIdx}
+          onChange={setFrameIdx}
+        />
+      </div>
     </main>
   );
 }

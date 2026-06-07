@@ -37,6 +37,22 @@ export interface RecommendResponse {
   recommendations: Recommendation[];
 }
 
+/** One sampled moment in the heat timeline. */
+export interface TimelineFrame {
+  tFuture: string;
+  cells: CrowdCell[];
+  venues: Venue[];
+  stations: SubwayState[];
+}
+
+export interface TimelineResponse {
+  gameState: GameState;
+  tNow: string;
+  nightEndsAt: string;
+  stepMin: number;
+  frames: TimelineFrame[];
+}
+
 /** Shared timing/game params accepted by the predictive endpoints. */
 export interface PredictParams {
   /** "Now" reference time (ISO or epoch ms). Defaults server-side to real now. */
@@ -77,6 +93,12 @@ export function getEvents(): Promise<{ events: GameEvent[] }> {
 
 export function getCrowd(params: PredictParams = {}): Promise<CrowdResponse> {
   return getJson(`/api/crowd${qs({ ...params })}`);
+}
+
+export function getCrowdTimeline(
+  params: PredictParams & { stepMin?: number } = {},
+): Promise<TimelineResponse> {
+  return getJson(`/api/crowd/timeline${qs({ ...params })}`);
 }
 
 export function getVenues(params: PredictParams = {}): Promise<VenuesResponse> {
