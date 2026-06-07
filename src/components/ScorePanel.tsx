@@ -1,29 +1,52 @@
 "use client";
 
-// Top bento card: the scoreboard. "NBA Finals" eyebrow, team crests, big
-// score. Score tracks the simulated live feed passed in from the page.
+// Top bento card: the scoreboard, styled after Google's game-score panel —
+// a "NBA · date / status" header row, then logos flanking the big score with
+// team names edge-aligned underneath. Score tracks the simulated live feed.
 
+import Image from "next/image";
 import { AWAY, HOME } from "@/data/gameFeed";
 import type { GameFeedState } from "@/lib/useGameFeed";
 
 interface ScorePanelProps {
   feed: GameFeedState;
-  subtitle?: string;
+  league?: string;
+  date?: string;
+}
+
+function statusLabel(feed: GameFeedState): string {
+  const { current } = feed;
+  if (current.tag === "FINAL") return "Final";
+  return `Q${current.period} · ${current.clock}`;
 }
 
 export default function ScorePanel({
   feed,
-  subtitle = "NBA Finals, June 8th",
+  league = "NBA Finals",
+  date = "June 8th",
 }: ScorePanelProps) {
   const { score, leading } = feed;
+  const status = statusLabel(feed);
 
   return (
     <section className="card glass card--score" aria-label="Live score">
-      <span className="card-eyebrow">{subtitle}</span>
+      <div className="score-head">
+        <span className="score-league">{league} · {date}</span>
+        <span className="score-status">{status}</span>
+      </div>
 
-      <div className="score-scoreboard">
+      <div className="score-board">
         <div className="score-team home">
-          <span className="team-crest nyk">NY</span>
+          <div className="team-logo">
+            <Image
+              src="/knicks-logo.png"
+              alt={`${HOME.fullName} logo`}
+              fill
+              sizes="96px"
+              className="team-logo-img"
+              priority
+            />
+          </div>
           <span className="team-name">{HOME.fullName}</span>
         </div>
 
@@ -38,7 +61,16 @@ export default function ScorePanel({
         </div>
 
         <div className="score-team away">
-          <span className="team-crest sas">SA</span>
+          <div className="team-logo">
+            <Image
+              src="/spurs-logo.png"
+              alt={`${AWAY.fullName} logo`}
+              fill
+              sizes="96px"
+              className="team-logo-img"
+              priority
+            />
+          </div>
           <span className="team-name">{AWAY.fullName}</span>
         </div>
       </div>

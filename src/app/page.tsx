@@ -6,21 +6,16 @@ import type { CrowdFilters } from "@/types";
 import { useGameFeed } from "@/lib/useGameFeed";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
-import FilterPanel, { type FriendsPrefs } from "@/components/FilterPanel";
+import FilterPanel from "@/components/FilterPanel";
 import RecommendationsList from "@/components/RecommendationsList";
 import { MOCK_SPOTS, type MockSpot } from "@/data/mockSpots";
 
 const DEFAULT_FILTERS: CrowdFilters = {
   maxCrowd: 0.7,
+  preferredAge: 26,
   prices: [],
   maxWalkMeters: 1500,
   vibes: [],
-};
-
-const DEFAULT_FRIENDS: FriendsPrefs = {
-  enabled: false,
-  school: "",
-  age: 26,
 };
 
 // Project a lat/lng onto the static map image as left/top percentages, anchored
@@ -44,7 +39,7 @@ function projectToMap(lat: number, lng: number): { left: number; top: number } {
 }
 
 // Mock ranking: respect the filters, then favor quiet + close + on-age spots.
-function rankSpots(filters: CrowdFilters, friends: FriendsPrefs): MockSpot[] {
+function rankSpots(filters: CrowdFilters): MockSpot[] {
   return MOCK_SPOTS.filter((s) => {
     if (s.crowd > filters.maxCrowd + 0.05) return false;
     if (s.distanceMeters > filters.maxWalkMeters) return false;
@@ -54,9 +49,8 @@ function rankSpots(filters: CrowdFilters, friends: FriendsPrefs): MockSpot[] {
     .map((s) => {
       const quiet = 1 - s.crowd;
       const close = 1 - Math.min(1, s.distanceMeters / filters.maxWalkMeters);
-      const ageFit = 1 - Math.min(1, Math.abs(s.avgAge - friends.age) / 12);
-      const social = friends.enabled ? Math.min(1, s.friendsHere / 8) : 0;
-      const score = 0.4 * quiet + 0.25 * close + 0.2 * ageFit + 0.15 * social;
+      const ageFit = 1 - Math.min(1, Math.abs(s.avgAge - filters.preferredAge) / 12);
+      const score = 0.45 * quiet + 0.3 * close + 0.25 * ageFit;
       return { s, score };
     })
     .sort((a, b) => b.score - a.score)
@@ -67,25 +61,18 @@ export default function Home() {
   const feed = useGameFeed();
 
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
-  const [friends, setFriends] = useState<FriendsPrefs>(DEFAULT_FRIENDS);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  const spots = useMemo(() => rankSpots(filters, friends), [filters, friends]);
+  const spots = useMemo(() => rankSpots(filters), [filters]);
 
   return (
     <main className="stage">
       <div className="bento">
         <ScorePanel feed={feed} />
         <EventsCard feed={feed} />
-        <FilterPanel
-          filters={filters}
-          onChange={setFilters}
-          friends={friends}
-          onFriendsChange={setFriends}
-        />
+        <FilterPanel filters={filters} onChange={setFilters} />
         <RecommendationsList
           spots={spots}
-          showFriends={friends.enabled}
           focusedId={focusedId}
           onFocus={setFocusedId}
         />

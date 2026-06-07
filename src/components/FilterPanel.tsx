@@ -1,26 +1,15 @@
 "use client";
 
-// "Your preferences" bento card. Three sliders — Crowd (how chaotic), Age
-// (which crowd to find friends in), Distance (how far you'll walk) — plus price
-// chips and the friends overlay toggle. Drives /api/recommend.
+// "Your preferences" bento card — sliders stacked vertically and spaced to
+// fill the cell height (title top, controls middle, price chips bottom).
 
 import type { CrowdFilters, PriceTier } from "@/types";
 
 const PRICE_TIERS: PriceTier[] = ["$", "$$", "$$$"];
 
-export interface FriendsPrefs {
-  enabled: boolean;
-  /** Filter the friend overlay to a school/university (empty = anyone). */
-  school: string;
-  /** Approximate age, used to match a similar cohort. */
-  age: number;
-}
-
 interface FilterPanelProps {
   filters: CrowdFilters;
   onChange: (next: CrowdFilters) => void;
-  friends: FriendsPrefs;
-  onFriendsChange: (next: FriendsPrefs) => void;
 }
 
 function chaosLabel(maxCrowd: number): string {
@@ -32,8 +21,6 @@ function chaosLabel(maxCrowd: number): string {
 export default function FilterPanel({
   filters,
   onChange,
-  friends,
-  onFriendsChange,
 }: FilterPanelProps) {
   const togglePrice = (tier: PriceTier) => {
     const has = filters.prices.includes(tier);
@@ -45,9 +32,9 @@ export default function FilterPanel({
 
   return (
     <section className="card glass card--prefs" aria-label="Your preferences">
-      <h2 className="card-title">Your preferences</h2>
+      <span className="prefs-eyebrow">Your preferences</span>
 
-      <div className="prefs-inner">
+      <div className="prefs-sliders">
         <div className="pref-row">
           <div className="pref-head">
             <label htmlFor="crowd">Crowd</label>
@@ -67,7 +54,7 @@ export default function FilterPanel({
         <div className="pref-row">
           <div className="pref-head">
             <label htmlFor="age">Age</label>
-            <span className="pref-val">~{friends.age}</span>
+            <span className="pref-val">~{filters.preferredAge}</span>
           </div>
           <input
             id="age"
@@ -75,8 +62,10 @@ export default function FilterPanel({
             min={18}
             max={45}
             step={1}
-            value={friends.age}
-            onChange={(e) => onFriendsChange({ ...friends, age: Number(e.target.value) })}
+            value={filters.preferredAge}
+            onChange={(e) =>
+              onChange({ ...filters, preferredAge: Number(e.target.value) })
+            }
           />
         </div>
 
@@ -99,28 +88,20 @@ export default function FilterPanel({
         </div>
       </div>
 
-      <div className="chip-row">
-        {PRICE_TIERS.map((tier) => (
-          <button
-            key={tier}
-            type="button"
-            className={`chip ${filters.prices.includes(tier) ? "is-on" : ""}`}
-            onClick={() => togglePrice(tier)}
-          >
-            {tier}
-          </button>
-        ))}
+      <div className="prefs-footer">
+        <div className="chip-row">
+          {PRICE_TIERS.map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              className={`chip chip--sm ${filters.prices.includes(tier) ? "is-on" : ""}`}
+              onClick={() => togglePrice(tier)}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
       </div>
-
-      <button
-        type="button"
-        className={`friends-toggle ${friends.enabled ? "is-on" : ""}`}
-        onClick={() => onFriendsChange({ ...friends, enabled: !friends.enabled })}
-        aria-pressed={friends.enabled}
-      >
-        <span className="friends-label">Find friends to watch with</span>
-        <span className="friends-switch" />
-      </button>
     </section>
   );
 }

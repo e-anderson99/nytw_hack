@@ -21,7 +21,7 @@ function parseScore(score: string): { nyk: number; sas: number } {
   return { nyk: nyk || 0, sas: sas || 0 };
 }
 
-export function useGameFeed(tickSeconds = 3.5, recentCount = 3): GameFeedState {
+export function useGameFeed(tickSeconds = 3.5): GameFeedState {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
@@ -34,12 +34,12 @@ export function useGameFeed(tickSeconds = 3.5, recentCount = 3): GameFeedState {
   return useMemo(() => {
     const current = GAME_FEED[idx];
     const recent: FeedMoment[] = [];
-    for (let k = 0; k < recentCount; k++) {
-      recent.push(GAME_FEED[(idx - k + GAME_FEED.length) % GAME_FEED.length]);
+    for (let k = idx; k >= 0; k--) {
+      recent.push(GAME_FEED[k]);
     }
     const score = parseScore(current.score);
     const leading =
       score.nyk === score.sas ? null : score.nyk > score.sas ? "nyk" : "sas";
     return { idx, current, recent, score, leading };
-  }, [idx, recentCount]);
+  }, [idx]);
 }
