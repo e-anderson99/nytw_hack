@@ -53,7 +53,15 @@ interface BoxscoreResponse {
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url, {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        // cdn.nba.com is fronted by Akamai and returns "Access Denied" to
+        // requests without a real browser-ish UA + an nba.com Referer/Origin.
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        Referer: "https://www.nba.com/",
+        Origin: "https://www.nba.com",
+      },
       // Live data — never cache.
       cache: "no-store",
     });
