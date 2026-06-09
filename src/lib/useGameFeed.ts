@@ -16,6 +16,8 @@ export interface GameFeedState {
   leading: "nyk" | "sas" | null;
   /** Total number of moments in the game (for the scrubber range). */
   total: number;
+  /** All moments so far, oldest-first (the scrubber reads these by index). */
+  moments: FeedMoment[];
   /** Whether the feed is auto-advancing. */
   playing: boolean;
   /** Jump to a specific moment (used by the scrubber). Clamped to range. */
@@ -64,6 +66,7 @@ export function useGameFeed(tickSeconds = 0.7): GameFeedState {
       score,
       leading,
       total: GAME_FEED.length,
+      moments: GAME_FEED,
       playing,
       seek,
       setPlaying,

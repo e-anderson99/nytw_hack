@@ -11,7 +11,11 @@ interface EventsCardProps {
 }
 
 function headline(leading: GameFeedState["leading"], isFinal: boolean): string {
-  if (isFinal) return "Knicks win it!";
+  if (isFinal) {
+    if (leading === "nyk") return "Knicks win it!";
+    if (leading === "sas") return "Spurs take it";
+    return "Final";
+  }
   if (leading === "nyk") return "Knicks are up!";
   if (leading === "sas") return "Knicks fighting back";
   return "All tied up!";

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CrowdFilters } from "@/types";
-import { useGameFeed } from "@/lib/useGameFeed";
+import { useLiveGameFeed } from "@/lib/useLiveGameFeed";
 import { useHeatTimeline } from "@/lib/useHeatTimeline";
 import ScorePanel from "@/components/ScorePanel";
 import EventsCard from "@/components/EventsCard";
@@ -42,7 +42,7 @@ function rankSpots(filters: CrowdFilters): MockSpot[] {
 }
 
 export default function Home() {
-  const feed = useGameFeed();
+  const feed = useLiveGameFeed();
 
   const [filters, setFilters] = useState<CrowdFilters>(DEFAULT_FILTERS);
   const [focusedId, setFocusedId] = useState<string | null>(null);

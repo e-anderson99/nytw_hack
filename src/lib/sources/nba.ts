@@ -50,7 +50,7 @@ interface BoxscoreResponse {
   };
 }
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+export async function fetchNbaJson<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -84,7 +84,7 @@ function statusFrom(gameStatus: number): GameState["status"] {
  * the Knicks aren't playing today.
  */
 export async function findKnicksGameId(): Promise<string | null> {
-  const data = await fetchJson<ScoreboardResponse>(SCOREBOARD_URL);
+  const data = await fetchNbaJson<ScoreboardResponse>(SCOREBOARD_URL);
   const games = data?.scoreboard?.games ?? [];
   const game = games.find(
     (g) =>
@@ -104,7 +104,7 @@ export async function getGameState(gameId?: string): Promise<GameState> {
 
   if (!id) return preGameFallback();
 
-  const box = await fetchJson<BoxscoreResponse>(BOXSCORE_URL(id));
+  const box = await fetchNbaJson<BoxscoreResponse>(BOXSCORE_URL(id));
   const g = box?.game;
   if (!g) return preGameFallback();
 

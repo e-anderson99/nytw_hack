@@ -23,7 +23,7 @@ function statusLabel(feed: GameFeedState): string {
 export default function ScorePanel({
   feed,
   league = "NBA Finals",
-  date = "June 8th",
+  date = "June 10th",
 }: ScorePanelProps) {
   const { score, leading } = feed;
   const status = statusLabel(feed);

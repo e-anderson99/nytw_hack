@@ -1,4 +1,4 @@
 # nytw_hack
 NYTW Hackathon
 
-https://nytwhack-rzq2.vercel.app 
+https://nytwhack-gamma.vercel.app

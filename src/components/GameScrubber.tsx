@@ -7,14 +7,13 @@
 
 import { useRef, useState } from "react";
 import type { GameFeedState } from "@/lib/useGameFeed";
-import { GAME_FEED } from "@/data/gameFeed";
 
 interface GameScrubberProps {
   feed: GameFeedState;
 }
 
 export default function GameScrubber({ feed }: GameScrubberProps) {
-  const { idx, total, current, playing, seek, setPlaying } = feed;
+  const { idx, total, current, moments, playing, seek, setPlaying } = feed;
   const wasPlaying = useRef(playing);
   // While the user drags, we hold the position locally and DON'T commit it to
   // the feed — so the map/score/events don't re-render or refetch on every
@@ -38,7 +37,8 @@ export default function GameScrubber({ feed }: GameScrubberProps) {
     if (wasPlaying.current) setPlaying(true);
   };
 
-  const displayMoment = dragIdx === null ? current : GAME_FEED[displayIdx];
+  const displayMoment =
+    dragIdx === null ? current : moments[displayIdx] ?? current;
   const label =
     displayMoment.tag === "FINAL"
       ? "FINAL"
